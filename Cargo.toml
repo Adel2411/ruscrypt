@@ -1,6 +1,13 @@
 [package]
 name = "ruscrypt"
-version = "0.1.0"
-edition = "2024"
+version = "1.0.0"
+edition = "2021"
+authors = ["Adel2411"]
+description = "⚡ Lightning-fast cryptography toolkit built with Rust ⚡"
 
 [dependencies]
+anyhow = "1.0.72"
+base64 = "0.22.1"
+clap = { version = "4.3.19", features = ["derive"] }
+colored = "2.0.4"
+dialoguer = "0.10.4"
