@@ -65,6 +65,58 @@
 
 ---
 
+## 🏗️ Project Structure
+
+```
+ruscrypt/
+├── Cargo.toml                  # Project manifest
+├── README.md                   # Documentation
+├── LICENSE                     # MIT license
+├── src/
+│   ├── main.rs                 # Entry point
+│   ├── cli.rs                  # CLI parsing
+│   ├── dispatcher.rs           # Command routing
+│   ├── interactive.rs          # User prompts
+│   ├── utils.rs                # Shared utilities
+│   │
+│   ├── classical/              # Classical ciphers
+│   │   ├── mod.rs
+│   │   ├── caesar.rs
+│   │   ├── vigenere.rs
+│   │   ├── playfair.rs
+│   │   └── rail_fence.rs
+│   │
+│   ├── stream/                 # Stream ciphers
+│   │   ├── mod.rs
+│   │   └── rc4.rs
+│   │
+│   ├── block/                  # Block ciphers
+│   │   ├── mod.rs
+│   │   ├── aes.rs
+│   │   └── des.rs
+│   │
+│   ├── asym/                   # Asymmetric crypto
+│   │   ├── mod.rs
+│   │   ├── rsa.rs
+│   │   └── diffie_hellman.rs
+│   │
+│   ├── hash/                   # Hash functions
+│   │   ├── mod.rs
+│   │   ├── md5.rs
+│   │   ├── sha1.rs
+│   │   └── sha256.rs
+│   │
+│   └── tests/                  # Test modules
+│       ├── mod.rs
+│       └── integration.rs
+│
+└── examples/                   # Usage examples
+    ├── demo.rs
+    └── quick_start.rs
+```
+
+---
+
 ## 📦 Installation
 
 ### Prerequisites
