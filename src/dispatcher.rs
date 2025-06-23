@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
@@ -82,41 +82,41 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     let result = match true {
         _ if algorithm.caesar => {
             let shift = interactive::prompt_for_number("Enter shift value (1-25)", 1, 25)?;
-            format!("Caesar encryption with shift {} will be implemented soon", shift)
+            format!("Caesar encryption with shift {} will be implemented soon for input: {}", shift, input)
         },
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
-            format!("Vigenère encryption with keyword '{}' will be implemented soon", keyword)
+            format!("Vigenère encryption with keyword '{}' will be implemented soon for input: {}", keyword, input)
         },
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
-            format!("Playfair encryption with keyword '{}' will be implemented soon", keyword)
+            format!("Playfair encryption with keyword '{}' will be implemented soon for input: {}", keyword, input)
         },
         _ if algorithm.railfence => {
             let rails = interactive::prompt_for_number("Enter number of rails (2-10)", 2, 10)?;
-            format!("Rail Fence encryption with {} rails will be implemented soon", rails)
+            format!("Rail Fence encryption with {} rails will be implemented soon for input: {}", rails, input)
         },
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter encryption key")?;
-            format!("RC4 encryption will be implemented soon")
+            format!("RC4 encryption will be implemented soon with key {} for input: {}", key, input)
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
-            format!("AES encryption will be implemented soon")
+            format!("AES encryption will be implemented soon for password {} for input: {}", password, input)
         },
         _ if algorithm.des => {
             let key = interactive::prompt_for_password("Enter key (8 characters)")?;
-            format!("DES encryption will be implemented soon")
+            format!("DES encryption will be implemented soon for key {} for input: {}", key, input)
         },
         _ if algorithm.rsa => {
             let key_size = interactive::prompt_for_choices(
                 "Select key size", 
                 &["1024", "2048", "4096"]
             )?;
-            format!("RSA encryption with {} bit key will be implemented soon", key_size)
+            format!("RSA encryption with {} bit key will be implemented soon for input: {}", key_size, input)
         },
         _ if algorithm.dh => {
-            format!("Diffie-Hellman key exchange will be implemented soon")
+            format!("Diffie-Hellman key exchange will be implemented soon for input: {}", input)
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -131,11 +131,11 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     let result = match true {
         _ if algorithm.caesar => {
             let shift = interactive::prompt_for_number("Enter shift value (1-25)", 1, 25)?;
-            format!("Caesar decryption with shift {} will be implemented soon", shift)
+            format!("Caesar decryption with shift {} will be implemented soon for input: {}", shift, input)
         },
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
-            format!("Vigenère decryption with keyword '{}' will be implemented soon", keyword)
+            format!("Vigenère decryption with keyword '{}' will be implemented soon for input: {}", keyword, input)
         },
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
@@ -147,22 +147,22 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter decryption key")?;
-            format!("RC4 decryption will be implemented soon")
+            format!("RC4 decryption will be implemented soon with key {} for input: {}", key, input)
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
-            format!("AES decryption will be implemented soon")
+            format!("AES decryption will be implemented soon for password {} for input: {}", password, input)
         },
         _ if algorithm.des => {
             let key = interactive::prompt_for_password("Enter key (8 characters)")?;
-            format!("DES decryption will be implemented soon")
+            format!("DES decryption will be implemented soon for key {} for input: {}", key, input)
         },
         _ if algorithm.rsa => {
             let private_key = interactive::prompt_for_input("Enter or paste private key")?;
-            format!("RSA decryption will be implemented soon")
+            format!("RSA decryption will be implemented soon with private key {} for input: {}", private_key, input)
         },
         _ if algorithm.dh => {
-            format!("Diffie-Hellman key import will be implemented soon")
+            format!("Diffie-Hellman key import will be implemented soon for input: {}", input)
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -176,13 +176,13 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
     
     let result = match true {
         _ if algorithm.md5 => {
-            format!("MD5 hashing will be implemented soon")
+            format!("MD5 hashing will be implemented soon for input: {}", input)
         },
         _ if algorithm.sha1 => {
-            format!("SHA-1 hashing will be implemented soon")
+            format!("SHA-1 hashing will be implemented soon for input: {}", input)
         },
         _ if algorithm.sha256 => {
-            format!("SHA-256 hashing will be implemented soon")
+            format!("SHA-256 hashing will be implemented soon for input: {}", input)
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
