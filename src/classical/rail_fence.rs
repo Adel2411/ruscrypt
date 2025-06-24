@@ -54,10 +54,10 @@ pub fn decrypt(text: &str, rails: usize) -> Result<String> {
     
     // Fill the fence with characters
     let mut char_index = 0;
-    for row in 0..rails {
+    for row in fence.iter_mut().take(rails) {
         for col in 0..len {
-            if fence[row][col] == '*' {
-                fence[row][col] = chars[char_index];
+            if row[col] == '*' {
+                row[col] = chars[char_index];
                 char_index += 1;
             }
         }

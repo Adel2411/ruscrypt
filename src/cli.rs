@@ -90,21 +90,37 @@ pub fn parse_args() -> Args {
 }
 
 pub fn get_algorithm_name(algo: &EncryptionAlgorithm) -> &'static str {
-    if algo.caesar { "Caesar" }
-    else if algo.vigenere { "Vigenère" }
-    else if algo.playfair { "Playfair" }
-    else if algo.railfence { "Rail Fence" }
-    else if algo.rc4 { "RC4" }
-    else if algo.aes { "AES" }
-    else if algo.des { "DES" }
-    else if algo.rsa { "RSA" }
-    else if algo.dh { "Diffie-Hellman" }
-    else { "Unknown" }
+    if algo.caesar {
+        "Caesar"
+    } else if algo.vigenere {
+        "Vigenère"
+    } else if algo.playfair {
+        "Playfair"
+    } else if algo.railfence {
+        "Rail Fence"
+    } else if algo.rc4 {
+        "RC4"
+    } else if algo.aes {
+        "AES"
+    } else if algo.des {
+        "DES"
+    } else if algo.rsa {
+        "RSA"
+    } else if algo.dh {
+        "Diffie-Hellman"
+    } else {
+        "Unknown"
+    }
 }
 
 pub fn get_hash_algorithm_name(algo: &HashAlgorithm) -> &'static str {
-    if algo.md5 { "MD5" }
-    else if algo.sha1 { "SHA-1" }
-    else if algo.sha256 { "SHA-256" }
-    else { "Unknown" }
+    if algo.md5 {
+        "MD5"
+    } else if algo.sha1 {
+        "SHA-1"
+    } else if algo.sha256 {
+        "SHA-256"
+    } else {
+        "Unknown"
+    }
 }

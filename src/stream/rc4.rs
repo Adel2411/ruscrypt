@@ -55,7 +55,7 @@ pub fn decrypt(data: &str, key: &str, encoding: &str) -> Result<String> {
 /// Converts bytes to hexadecimal string
 fn to_hex(data: &[u8]) -> String {
     data.iter()
-        .map(|byte| format!("{:02x}", byte))
+        .map(|byte| format!("{byte:02x}"))
         .collect::<String>()
 }
 

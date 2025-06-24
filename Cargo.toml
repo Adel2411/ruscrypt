@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Adel2411"]
 description = "⚡ Lightning-fast cryptography toolkit built with Rust ⚡"
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/Adel2411/ruscrypt"
+repository = "https://github.com/Adel2411/ruscrypt"
+keywords = ["cryptography", "encryption", "hash", "cli", "security"]
+categories = ["command-line-utilities", "cryptography"]
 
 # Specify both library and binary
 [lib]

@@ -6,16 +6,15 @@ pub fn prompt_for_input(prompt: &str) -> Result<String> {
         .with_prompt(prompt)
         .interact()
         .context("Failed to read user input")?;
-    
+
     Ok(input)
 }
 
 pub fn prompt_for_password(prompt: &str) -> Result<String> {
-    let password = Password::new()
-        .with_prompt(prompt)
-        .interact()
-        .context("Failed to read password")?;
-    
+    let password = Password::new().with_prompt(prompt).interact().context(
+        "Failed to read password",
+    )?;
+
     Ok(password)
 }
 
@@ -31,7 +30,7 @@ pub fn prompt_for_number(prompt: &str, min: u32, max: u32) -> Result<u32> {
         })
         .interact()
         .context("Failed to read number")?;
-    
+
     Ok(number)
 }
 
@@ -42,6 +41,6 @@ pub fn prompt_for_choices(prompt: &str, choices: &[&str]) -> Result<String> {
         .default(0)
         .interact()
         .context("Failed to select an option")?;
-    
+
     Ok(choices[selection].to_string())
 }

@@ -34,5 +34,4 @@ fn print_banner() {
     ".yellow());
     
     println!("{}", "⚡ Lightning-fast cryptography toolkit ⚡".yellow());
-    println!("{}\n", "Built with Rust 🦀".bright_red().italic());
 }

@@ -8,7 +8,7 @@ pub fn hash(input: &str) -> Result<String> {
     // Convert to hexadecimal string
     let hex_string = hash_bytes
         .iter()
-        .map(|byte| format!("{:02x}", byte))
+        .map(|byte| format!("{byte:02x}"))
         .collect::<String>();
     
     Ok(hex_string)

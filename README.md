@@ -1,12 +1,7 @@
 <div align="center">
   <img src="https://cdn.pixabay.com/photo/2019/10/06/11/40/lock-4529981_1280.png" alt="ruscrypt logo" width="200" height="200">
-</div>
 
-<br>
-
-<div align="center">
-
-# ruscrypt
+# RusCrypt
 
 ### _⚡ Lightning-fast cryptography toolkit built with Rust ⚡_
 
