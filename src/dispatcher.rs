@@ -2,7 +2,7 @@ use anyhow::Result;
 use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
-use crate::classical::caesar;
+use crate::classical::{caesar, rail_fence};
 use crate::interactive;
 
 pub fn dispatch_command(args: Args) -> Result<()> {
@@ -96,7 +96,8 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.railfence => {
             let rails = interactive::prompt_for_number("Enter number of rails (2-10)", 2, 10)?;
-            format!("Rail Fence encryption with {} rails will be implemented soon for input: {}", rails, input)
+            let encrypted = rail_fence::encrypt(&input, rails as usize)?;
+            format!("Encrypted text: {}", encrypted)
         },
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter encryption key")?;
@@ -146,7 +147,8 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.railfence => {
             let rails = interactive::prompt_for_number("Enter number of rails (2-10)", 2, 10)?;
-            format!("Rail Fence decryption with {} rails will be implemented soon", rails)
+            let decrypted = rail_fence::decrypt(&input, rails as usize)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter decryption key")?;

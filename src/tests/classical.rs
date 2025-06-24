@@ -38,48 +38,34 @@ mod tests {
         }
     }
 
-    // #[cfg(test)]
-    // mod vigenere_tests {
-    //     use crate::classical::vigenere;
+    #[cfg(test)]
+    mod rail_fence_tests {
+        use crate::classical::rail_fence;
 
-    //     #[test]
-    //     fn test_encrypt_basic() {
-    //         // Add vigenere tests when module is implemented
-    //     }
+        #[test]
+        fn test_encrypt_basic() {
+            assert_eq!(rail_fence::encrypt("HELLO", 2).unwrap(), "HLOEL");
+            assert_eq!(rail_fence::encrypt("WEAREDISCOVEREDFLEEATONCE", 3).unwrap(), "WECRLTEERDSOEEFEAOCAIVDEN");
+        }
 
-    //     #[test]
-    //     fn test_decrypt_basic() {
-    //         // Add vigenere tests when module is implemented
-    //     }
-    // }
+        #[test]
+        fn test_decrypt_basic() {
+            assert_eq!(rail_fence::decrypt("HLOEL", 2).unwrap(), "HELLO");
+            assert_eq!(rail_fence::decrypt("WECRLTEERDSOEEFEAOCAIVDEN", 3).unwrap(), "WEAREDISCOVEREDFLEEATONCE");
+        }
 
-    // #[cfg(test)]
-    // mod playfair_tests {
-    //     use crate::classical::playfair;
+        #[test]
+        fn test_round_trip() {
+            let original = "ATTACKATDAWN";
+            let encrypted = rail_fence::encrypt(original, 3).unwrap();
+            let decrypted = rail_fence::decrypt(&encrypted, 3).unwrap();
+            assert_eq!(original, decrypted);
+        }
 
-    //     #[test]
-    //     fn test_encrypt_basic() {
-    //         // Add playfair tests when module is implemented
-    //     }
-
-    //     #[test]
-    //     fn test_decrypt_basic() {
-    //         // Add playfair tests when module is implemented
-    //     }
-    // }
-
-    // #[cfg(test)]
-    // mod rail_fence_tests {
-    //     use crate::classical::rail_fence;
-
-    //     #[test]
-    //     fn test_encrypt_basic() {
-    //         // Add rail fence tests when module is implemented
-    //     }
-
-    //     #[test]
-    //     fn test_decrypt_basic() {
-    //         // Add rail fence tests when module is implemented
-    //     }
-    // }
+        #[test]
+        fn test_single_rail() {
+            assert_eq!(rail_fence::encrypt("HELLO", 1).unwrap(), "HELLO");
+            assert_eq!(rail_fence::decrypt("HELLO", 1).unwrap(), "HELLO");
+        }
+    }
 }
