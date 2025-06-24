@@ -3,6 +3,7 @@ use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
 use crate::classical::{caesar, rail_fence, vigenere, playfair};
+use crate::stream::rc4;
 use crate::hash::{md5, sha1, sha256};
 use crate::interactive;
 
@@ -104,7 +105,12 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter encryption key")?;
-            format!("RC4 encryption will be implemented soon with key {} for input: {}", key, input)
+            let encoding = interactive::prompt_for_choices(
+                "Select output encoding",
+                &["base64", "hex"]
+            )?;
+            let encrypted = rc4::encrypt(&input, &key, &encoding)?;
+            format!("Encrypted text ({}): {}", encoding, encrypted)
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
@@ -157,7 +163,12 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter decryption key")?;
-            format!("RC4 decryption will be implemented soon with key {} for input: {}", key, input)
+            let encoding = interactive::prompt_for_choices(
+                "Select input encoding",
+                &["base64", "hex"]
+            )?;
+            let decrypted = rc4::decrypt(&input, &key, &encoding)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;

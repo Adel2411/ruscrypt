@@ -7,6 +7,7 @@ mod interactive;
 mod utils;
 mod classical;
 mod hash;
+mod stream;
 
 #[cfg(test)]
 mod tests;
