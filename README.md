@@ -1,13 +1,19 @@
-# 🔐 ruscrypt
+<div align="center">
+  <img src="https://cdn.pixabay.com/photo/2019/10/06/11/40/lock-4529981_1280.png" alt="ruscrypt logo" width="200" height="200">
+</div>
+
+<br>
 
 <div align="center">
+
+# ruscrypt
 
 ### _⚡ Lightning-fast cryptography toolkit built with Rust ⚡_
 
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
 
 **Modern cryptographic operations made simple and blazingly fast**
 
