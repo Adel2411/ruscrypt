@@ -12,7 +12,17 @@ pub fn from_base64(encoded: &str) -> Result<Vec<u8>> {
     Ok(decoded)
 }
 
-/// Helper function to print a separator line
-pub fn print_separator() {
-    println!("\n{}\n", "─".repeat(50));
+/// Shifts a single character by the given amount
+pub fn shift_char(c: char, shift: u8) -> char {
+    match c {
+        'A'..='Z' => {
+            let shifted = ((c as u8 - b'A' + shift) % 26) + b'A';
+            shifted as char
+        }
+        'a'..='z' => {
+            let shifted = ((c as u8 - b'a' + shift) % 26) + b'a';
+            shifted as char
+        }
+        _ => c,
+    }
 }

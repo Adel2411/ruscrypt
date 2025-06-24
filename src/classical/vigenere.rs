@@ -1,5 +1,7 @@
 use anyhow::Result;
 
+use crate::utils::shift_char;
+
 /// Encrypts text using Vigenère cipher
 pub fn encrypt(text: &str, keyword: &str) -> Result<String> {
     if keyword.is_empty() {
@@ -61,19 +63,4 @@ pub fn decrypt(text: &str, keyword: &str) -> Result<String> {
         .collect();
     
     Ok(result)
-}
-
-/// Shifts a single character by the given amount (reused from Caesar)
-fn shift_char(c: char, shift: u8) -> char {
-    match c {
-        'A'..='Z' => {
-            let shifted = ((c as u8 - b'A' + shift) % 26) + b'A';
-            shifted as char
-        }
-        'a'..='z' => {
-            let shifted = ((c as u8 - b'a' + shift) % 26) + b'a';
-            shifted as char
-        }
-        _ => c,
-    }
 }
