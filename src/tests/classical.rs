@@ -68,4 +68,40 @@ mod tests {
             assert_eq!(rail_fence::decrypt("HELLO", 1).unwrap(), "HELLO");
         }
     }
+
+    #[cfg(test)]
+    mod vigenere_tests {
+        use crate::classical::vigenere;
+
+        #[test]
+        fn test_encrypt_basic() {
+            assert_eq!(vigenere::encrypt("HELLO", "KEY").unwrap(), "RIJVS");
+            assert_eq!(vigenere::encrypt("hello", "key").unwrap(), "rijvs");
+        }
+
+        #[test]
+        fn test_decrypt_basic() {
+            assert_eq!(vigenere::decrypt("RIJVS", "KEY").unwrap(), "HELLO");
+            assert_eq!(vigenere::decrypt("rijvs", "key").unwrap(), "hello");
+        }
+
+        #[test]
+        fn test_with_spaces() {
+            assert_eq!(vigenere::encrypt("HELLO WORLD", "KEY").unwrap(), "RIJVS UYVJN");
+            assert_eq!(vigenere::decrypt("RIJVS UYVJN", "KEY").unwrap(), "HELLO WORLD");
+        }
+
+        #[test]
+        fn test_round_trip() {
+            let original = "The Quick Brown Fox";
+            let encrypted = vigenere::encrypt(original, "SECRET").unwrap();
+            let decrypted = vigenere::decrypt(&encrypted, "SECRET").unwrap();
+            assert_eq!(original, decrypted);
+        }
+
+        #[test]
+        fn test_empty_keyword() {
+            assert!(vigenere::encrypt("HELLO", "").is_err());
+        }
+    }
 }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
-use crate::classical::{caesar, rail_fence};
+use crate::classical::{caesar, rail_fence, vigenere};
 use crate::interactive;
 
 pub fn dispatch_command(args: Args) -> Result<()> {
@@ -88,7 +88,8 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
-            format!("Vigenère encryption with keyword '{}' will be implemented soon for input: {}", keyword, input)
+            let encrypted = vigenere::encrypt(&input, &keyword)?;
+            format!("Encrypted text: {}", encrypted)
         },
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
@@ -139,7 +140,8 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
-            format!("Vigenère decryption with keyword '{}' will be implemented soon for input: {}", keyword, input)
+            let decrypted = vigenere::decrypt(&input, &keyword)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
