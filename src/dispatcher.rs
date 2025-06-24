@@ -2,7 +2,7 @@ use anyhow::Result;
 use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
-use crate::classical::{caesar, rail_fence, vigenere};
+use crate::classical::{caesar, rail_fence, vigenere, playfair};
 use crate::interactive;
 
 pub fn dispatch_command(args: Args) -> Result<()> {
@@ -93,7 +93,8 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
-            format!("Playfair encryption with keyword '{}' will be implemented soon for input: {}", keyword, input)
+            let encrypted = playfair::encrypt(&input, &keyword)?;
+            format!("Encrypted text: {}", encrypted)
         },
         _ if algorithm.railfence => {
             let rails = interactive::prompt_for_number("Enter number of rails (2-10)", 2, 10)?;
@@ -145,7 +146,8 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
-            format!("Playfair decryption with keyword '{}' will be implemented soon", keyword)
+            let decrypted = playfair::decrypt(&input, &keyword)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.railfence => {
             let rails = interactive::prompt_for_number("Enter number of rails (2-10)", 2, 10)?;

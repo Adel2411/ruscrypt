@@ -1,3 +1,4 @@
 pub mod caesar;
-pub mod rail_fence;
 pub mod vigenere;
+pub mod playfair;
+pub mod rail_fence;
