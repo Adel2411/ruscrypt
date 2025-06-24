@@ -5,6 +5,15 @@ edition = "2021"
 authors = ["Adel2411"]
 description = "⚡ Lightning-fast cryptography toolkit built with Rust ⚡"
 
+# Specify both library and binary
+[lib]
+name = "ruscrypt"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ruscrypt"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0.72"
 base64 = "0.22.1"
