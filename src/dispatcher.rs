@@ -3,6 +3,7 @@ use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
 use crate::classical::{caesar, rail_fence, vigenere, playfair};
+use crate::hash::md5;
 use crate::interactive;
 
 pub fn dispatch_command(args: Args) -> Result<()> {
@@ -185,7 +186,8 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
     
     let result = match true {
         _ if algorithm.md5 => {
-            format!("MD5 hashing will be implemented soon for input: {}", input)
+            let hash_value = md5::hash(&input)?;
+            format!("MD5 hash: {}", hash_value)
         },
         _ if algorithm.sha1 => {
             format!("SHA-1 hashing will be implemented soon for input: {}", input)

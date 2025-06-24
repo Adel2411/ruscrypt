@@ -6,6 +6,7 @@ mod dispatcher;
 mod interactive;
 mod utils;
 mod classical;
+mod hash;
 
 #[cfg(test)]
 mod tests;
