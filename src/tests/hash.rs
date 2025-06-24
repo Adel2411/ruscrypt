@@ -126,4 +126,75 @@ mod tests {
             assert_ne!(hash_lower, hash_upper);
         }
     }
+
+    #[cfg(test)]
+    mod sha256_tests {
+        use crate::hash::sha256;
+
+        #[test]
+        fn test_empty_string() {
+            assert_eq!(sha256::hash("").unwrap(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        }
+
+        #[test]
+        fn test_single_character() {
+            assert_eq!(sha256::hash("a").unwrap(), "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb");
+        }
+
+        #[test]
+        fn test_abc() {
+            assert_eq!(sha256::hash("abc").unwrap(), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        }
+
+        #[test]
+        fn test_hello_world() {
+            assert_eq!(sha256::hash("hello world").unwrap(), "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
+        }
+
+        #[test]
+        fn test_longer_message() {
+            assert_eq!(
+                sha256::hash("The quick brown fox jumps over the lazy dog").unwrap(),
+                "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
+            );
+        }
+
+        #[test]
+        fn test_unicode() {
+            assert_eq!(sha256::hash("Hello, 世界").unwrap(), "a281e84c7f61393db702630c2a6807e871cd3b6896c9e56e22982d125696575c");
+        }
+
+        #[test]
+        fn test_numbers() {
+            assert_eq!(sha256::hash("123456789").unwrap(), "15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225");
+        }
+
+        #[test]
+        fn test_special_characters() {
+            assert_eq!(sha256::hash("!@#$%^&*()").unwrap(), "95ce789c5c9d18490972709838ca3a9719094bca3ac16332cfec0652b0236141");
+        }
+
+        #[test]
+        fn test_repeated_calls() {
+            let input = "test message";
+            let hash1 = sha256::hash(input).unwrap();
+            let hash2 = sha256::hash(input).unwrap();
+            assert_eq!(hash1, hash2);
+        }
+
+        #[test]
+        fn test_case_sensitivity() {
+            let hash_lower = sha256::hash("hello").unwrap();
+            let hash_upper = sha256::hash("HELLO").unwrap();
+            assert_ne!(hash_lower, hash_upper);
+        }
+
+        #[test]
+        fn test_million_a() {
+            // Test with a longer input
+            let input = "a".repeat(1000000);
+            let result = sha256::hash(&input).unwrap();
+            assert_eq!(result.len(), 64); // SHA-256 always produces 64 hex characters
+        }
+    }
 }

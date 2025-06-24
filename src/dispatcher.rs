@@ -3,7 +3,7 @@ use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
 use crate::classical::{caesar, rail_fence, vigenere, playfair};
-use crate::hash::{md5, sha1};
+use crate::hash::{md5, sha1, sha256};
 use crate::interactive;
 
 pub fn dispatch_command(args: Args) -> Result<()> {
@@ -194,7 +194,8 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
             format!("SHA-1 hash: {}", hash_value)
         },
         _ if algorithm.sha256 => {
-            format!("SHA-256 hashing will be implemented soon for input: {}", input)
+            let hash_value = sha256::hash(&input)?;
+            format!("SHA-256 hash: {}", hash_value)
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
