@@ -5,6 +5,10 @@ mod cli;
 mod dispatcher;
 mod interactive;
 mod utils;
+mod classical;
+
+#[cfg(test)]
+mod tests;
 
 fn main() -> Result<()> {
     print_banner();

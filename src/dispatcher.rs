@@ -2,6 +2,7 @@ use anyhow::Result;
 use colored::*;
 
 use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
+use crate::classical::caesar;
 use crate::interactive;
 
 pub fn dispatch_command(args: Args) -> Result<()> {
@@ -82,7 +83,8 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     let result = match true {
         _ if algorithm.caesar => {
             let shift = interactive::prompt_for_number("Enter shift value (1-25)", 1, 25)?;
-            format!("Caesar encryption with shift {} will be implemented soon for input: {}", shift, input)
+            let encrypted = caesar::encrypt(&input, shift as u8)?;
+            format!("Encrypted text: {}", encrypted)
         },
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
@@ -131,7 +133,8 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     let result = match true {
         _ if algorithm.caesar => {
             let shift = interactive::prompt_for_number("Enter shift value (1-25)", 1, 25)?;
-            format!("Caesar decryption with shift {} will be implemented soon for input: {}", shift, input)
+            let decrypted = caesar::decrypt(&input, shift as u8)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
