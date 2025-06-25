@@ -1,19 +1,27 @@
 use anyhow::Result;
 use crate::{hash::sha256, utils::{from_base64, from_hex, pad_data, remove_padding, to_base64, to_hex}};
 
-/// Encrypts data using simplified AES with specified encoding
-pub fn encrypt(data: &str, password: &str, encoding: &str) -> Result<String> {
+/// Encrypts data using simplified AES with specified encoding and key size
+pub fn encrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Result<String> {
     if password.is_empty() {
         return Err(anyhow::anyhow!("Password cannot be empty"));
     }
     
-    // Generate 256-bit key from password using our SHA-256
-    let key = derive_key(password)?;
+    // Parse key size
+    let key_bits: u32 = key_size.parse()
+        .map_err(|_| anyhow::anyhow!("Invalid key size: {}", key_size))?;
+    
+    if ![128, 192, 256].contains(&key_bits) {
+        return Err(anyhow::anyhow!("Key size must be 128, 192, or 256 bits"));
+    }
+    
+    // Generate key from password using our SHA-256
+    let key = derive_key(password, key_bits)?;
     let data_bytes = pad_data(data.as_bytes()); // Uses 16-byte padding for AES
     
     let mut encrypted = Vec::new();
     for chunk in data_bytes.chunks(16) {
-        let encrypted_block = aes_encrypt_block(chunk, &key)?;
+        let encrypted_block = aes_encrypt_block(chunk, &key, key_bits)?;
         encrypted.extend_from_slice(&encrypted_block);
     }
     
@@ -25,10 +33,18 @@ pub fn encrypt(data: &str, password: &str, encoding: &str) -> Result<String> {
     }
 }
 
-/// Decrypts data using simplified AES with specified encoding
-pub fn decrypt(data: &str, password: &str, encoding: &str) -> Result<String> {
+/// Decrypts data using simplified AES with specified encoding and key size
+pub fn decrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Result<String> {
     if password.is_empty() {
         return Err(anyhow::anyhow!("Password cannot be empty"));
+    }
+    
+    // Parse key size
+    let key_bits: u32 = key_size.parse()
+        .map_err(|_| anyhow::anyhow!("Invalid key size: {}", key_size))?;
+    
+    if ![128, 192, 256].contains(&key_bits) {
+        return Err(anyhow::anyhow!("Key size must be 128, 192, or 256 bits"));
     }
     
     // Convert from specified encoding
@@ -38,14 +54,14 @@ pub fn decrypt(data: &str, password: &str, encoding: &str) -> Result<String> {
         _ => return Err(anyhow::anyhow!("Unsupported encoding: {}. Use 'base64' or 'hex'", encoding))
     };
     
-    let key = derive_key(password)?;
+    let key = derive_key(password, key_bits)?;
     let mut decrypted = Vec::new();
     
     for chunk in encrypted_bytes.chunks(16) {
         if chunk.len() != 16 {
             return Err(anyhow::anyhow!("Invalid encrypted data length"));
         }
-        let decrypted_block = aes_decrypt_block(chunk, &key)?;
+        let decrypted_block = aes_decrypt_block(chunk, &key, key_bits)?;
         decrypted.extend_from_slice(&decrypted_block);
     }
     
@@ -55,39 +71,61 @@ pub fn decrypt(data: &str, password: &str, encoding: &str) -> Result<String> {
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in decrypted data: {}", e))
 }
 
-/// Derives 256-bit key from password using our custom SHA-256
-fn derive_key(password: &str) -> Result<[u8; 32]> {
+/// Derives key from password using our custom SHA-256 with specified key size
+fn derive_key(password: &str, key_bits: u32) -> Result<Vec<u8>> {
     let hash_hex = sha256::hash(password)?;
+    let key_bytes = key_bits / 8;
     
-    // Convert hex string to bytes
-    let mut key = [0u8; 32];
-    for (i, chunk) in hash_hex.chars().collect::<Vec<_>>().chunks(2).enumerate() {
-        if i >= 32 { break; }
+    // Convert hex string to bytes and truncate/extend as needed
+    let mut key = Vec::new();
+    for chunk in hash_hex.chars().collect::<Vec<_>>().chunks(2) {
+        if key.len() >= key_bytes as usize { break; }
         let hex_str: String = chunk.iter().collect();
-        key[i] = u8::from_str_radix(&hex_str, 16)
+        let byte = u8::from_str_radix(&hex_str, 16)
             .map_err(|e| anyhow::anyhow!("Failed to parse hex: {}", e))?;
+        key.push(byte);
     }
     
+    // For key sizes larger than SHA-256 output, repeat the hash
+    while key.len() < key_bytes as usize {
+        let additional_hash = sha256::hash(&format!("{}{}", password, key.len()))?;
+        for chunk in additional_hash.chars().collect::<Vec<_>>().chunks(2) {
+            if key.len() >= key_bytes as usize { break; }
+            let hex_str: String = chunk.iter().collect();
+            let byte = u8::from_str_radix(&hex_str, 16)
+                .map_err(|e| anyhow::anyhow!("Failed to parse hex: {}", e))?;
+            key.push(byte);
+        }
+    }
+    
+    key.truncate(key_bytes as usize);
     Ok(key)
 }
 
-/// Simplified AES encryption for educational purposes
-/// Note: This is NOT real AES - it's a simplified version for learning
-fn aes_encrypt_block(block: &[u8], key: &[u8; 32]) -> Result<[u8; 16]> {
+/// Simplified AES encryption with variable key size
+fn aes_encrypt_block(block: &[u8], key: &[u8], key_bits: u32) -> Result<[u8; 16]> {
     let mut state = [0u8; 16];
     
-    // Copy input block (pad if necessary)
+    // Copy input block
     for (i, &byte) in block.iter().enumerate() {
         if i < 16 {
             state[i] = byte;
         }
     }
     
-    // Simplified round function (10 rounds for educational purposes)
-    for round in 0..10 {
+    // Number of rounds based on key size
+    let rounds = match key_bits {
+        128 => 10,
+        192 => 12,
+        256 => 14,
+        _ => return Err(anyhow::anyhow!("Unsupported key size: {}", key_bits)),
+    };
+    
+    // Simplified round function
+    for round in 0..rounds {
         // AddRoundKey (simplified)
         for i in 0..16 {
-            state[i] ^= key[round % 32];
+            state[i] ^= key[round % key.len()];
         }
         
         // SubBytes (simplified S-box)
@@ -98,33 +136,40 @@ fn aes_encrypt_block(block: &[u8], key: &[u8; 32]) -> Result<[u8; 16]> {
         // ShiftRows (simplified)
         shift_rows(&mut state);
         
-        // MixColumns (simplified)
-        if round < 9 { // Skip in last round
+        // MixColumns (simplified) - skip in last round
+        if round < rounds - 1 {
             mix_columns(&mut state);
         }
     }
     
     // Final AddRoundKey
     for i in 0..16 {
-        state[i] ^= key[i % 32];
+        state[i] ^= key[i % key.len()];
     }
     
     Ok(state)
 }
 
-/// Simplified AES decryption
-fn aes_decrypt_block(block: &[u8], key: &[u8; 32]) -> Result<[u8; 16]> {
+/// Simplified AES decryption with variable key size
+fn aes_decrypt_block(block: &[u8], key: &[u8], key_bits: u32) -> Result<[u8; 16]> {
     let mut state: [u8; 16] = block.try_into().unwrap();
+    
+    let rounds = match key_bits {
+        128 => 10,
+        192 => 12,
+        256 => 14,
+        _ => return Err(anyhow::anyhow!("Unsupported key size: {}", key_bits)),
+    };
     
     // Reverse final AddRoundKey
     for i in 0..16 {
-        state[i] ^= key[i % 32];
+        state[i] ^= key[i % key.len()];
     }
     
     // Reverse rounds
-    for round in (0..10).rev() {
-        // Reverse MixColumns (simplified)
-        if round < 9 {
+    for round in (0..rounds).rev() {
+        // Reverse MixColumns (simplified) - skip in last round
+        if round < rounds - 1 {
             inv_mix_columns(&mut state);
         }
         
@@ -138,7 +183,7 @@ fn aes_decrypt_block(block: &[u8], key: &[u8; 32]) -> Result<[u8; 16]> {
         
         // Reverse AddRoundKey
         for i in 0..16 {
-            state[i] ^= key[round % 32];
+            state[i] ^= key[round % key.len()];
         }
     }
     

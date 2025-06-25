@@ -229,15 +229,15 @@ mod tests {
         use crate::block::aes;
 
         #[test]
-        fn test_encrypt_basic_base64() {
-            let result = aes::encrypt("Hello", "password", "base64").unwrap();
+        fn test_encrypt_basic_base64_128() {
+            let result = aes::encrypt("Hello", "password", "128", "base64").unwrap();
             // Should be valid base64 string
             assert!(crate::utils::from_base64(&result).is_ok());
         }
 
         #[test]
-        fn test_encrypt_basic_hex() {
-            let result = aes::encrypt("Hello", "password", "hex").unwrap();
+        fn test_encrypt_basic_hex_256() {
+            let result = aes::encrypt("Hello", "password", "256", "hex").unwrap();
             // Should be hex string
             assert!(result.chars().all(|c| c.is_ascii_hexdigit()));
             assert_eq!(result.len() % 2, 0); // Even length for hex
@@ -247,8 +247,9 @@ mod tests {
         fn test_decrypt_basic_base64() {
             let original = "Hello World";
             let password = "testpassword";
-            let encrypted = aes::encrypt(original, password, "base64").unwrap();
-            let decrypted = aes::decrypt(&encrypted, password, "base64").unwrap();
+            let key_size = "256";
+            let encrypted = aes::encrypt(original, password, key_size, "base64").unwrap();
+            let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
             assert_eq!(decrypted, original);
         }
 
@@ -256,38 +257,81 @@ mod tests {
         fn test_round_trip_both_encodings() {
             let original = "The Quick Brown Fox Jumps Over The Lazy Dog!";
             let password = "securepassword123";
+            let key_size = "192";
             
             // Test base64
-            let encrypted_b64 = aes::encrypt(original, password, "base64").unwrap();
-            let decrypted_b64 = aes::decrypt(&encrypted_b64, password, "base64").unwrap();
+            let encrypted_b64 = aes::encrypt(original, password, key_size, "base64").unwrap();
+            let decrypted_b64 = aes::decrypt(&encrypted_b64, password, key_size, "base64").unwrap();
             assert_eq!(decrypted_b64, original);
             
             // Test hex
-            let encrypted_hex = aes::encrypt(original, password, "hex").unwrap();
-            let decrypted_hex = aes::decrypt(&encrypted_hex, password, "hex").unwrap();
+            let encrypted_hex = aes::encrypt(original, password, key_size, "hex").unwrap();
+            let decrypted_hex = aes::decrypt(&encrypted_hex, password, key_size, "hex").unwrap();
             assert_eq!(decrypted_hex, original);
         }
 
         #[test]
+        fn test_all_key_sizes() {
+            let original = "Test message for all key sizes";
+            let password = "testpassword";
+            
+            for key_size in ["128", "192", "256"] {
+                let encrypted = aes::encrypt(original, password, key_size, "base64").unwrap();
+                let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
+                assert_eq!(decrypted, original, "Failed with key size: {}", key_size);
+            }
+        }
+
+        #[test]
+        fn test_invalid_key_size() {
+            assert!(aes::encrypt("Hello", "password", "64", "base64").is_err());
+            assert!(aes::encrypt("Hello", "password", "512", "base64").is_err());
+            assert!(aes::encrypt("Hello", "password", "abc", "base64").is_err());
+            assert!(aes::decrypt("data", "password", "invalid", "base64").is_err());
+        }
+
+        #[test]
         fn test_empty_password() {
-            assert!(aes::encrypt("Hello", "", "base64").is_err());
-            assert!(aes::decrypt("data", "", "base64").is_err());
+            assert!(aes::encrypt("Hello", "", "256", "base64").is_err());
+            assert!(aes::decrypt("data", "", "128", "base64").is_err());
         }
 
         #[test]
         fn test_different_passwords() {
             let text = "Secret Message";
-            let encrypted1 = aes::encrypt(text, "password1", "base64").unwrap();
-            let encrypted2 = aes::encrypt(text, "password2", "base64").unwrap();
+            let key_size = "256";
+            let encrypted1 = aes::encrypt(text, "password1", key_size, "base64").unwrap();
+            let encrypted2 = aes::encrypt(text, "password2", key_size, "base64").unwrap();
             assert_ne!(encrypted1, encrypted2);
+        }
+
+        #[test]
+        fn test_different_key_sizes_same_password() {
+            let text = "Test with different key sizes";
+            let password = "samepassword";
+            
+            let encrypted_128 = aes::encrypt(text, password, "128", "base64").unwrap();
+            let encrypted_192 = aes::encrypt(text, password, "192", "base64").unwrap();
+            let encrypted_256 = aes::encrypt(text, password, "256", "base64").unwrap();
+            
+            // Different key sizes should produce different ciphertexts
+            assert_ne!(encrypted_128, encrypted_192);
+            assert_ne!(encrypted_192, encrypted_256);
+            assert_ne!(encrypted_128, encrypted_256);
+            
+            // But all should decrypt correctly
+            assert_eq!(aes::decrypt(&encrypted_128, password, "128", "base64").unwrap(), text);
+            assert_eq!(aes::decrypt(&encrypted_192, password, "192", "base64").unwrap(), text);
+            assert_eq!(aes::decrypt(&encrypted_256, password, "256", "base64").unwrap(), text);
         }
 
         #[test]
         fn test_unicode_text() {
             let original = "Hello 世界! 🔐";
             let password = "unicode_password";
-            let encrypted = aes::encrypt(original, password, "base64").unwrap();
-            let decrypted = aes::decrypt(&encrypted, password, "base64").unwrap();
+            let key_size = "256";
+            let encrypted = aes::encrypt(original, password, key_size, "base64").unwrap();
+            let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
             assert_eq!(decrypted, original);
         }
 
@@ -295,23 +339,144 @@ mod tests {
         fn test_long_text() {
             let original = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(20);
             let password = "longtext_password";
-            let encrypted = aes::encrypt(&original, password, "base64").unwrap();
-            let decrypted = aes::decrypt(&encrypted, password, "base64").unwrap();
+            let key_size = "128";
+            let encrypted = aes::encrypt(&original, password, key_size, "base64").unwrap();
+            let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
             assert_eq!(decrypted, original);
         }
 
         #[test]
         fn test_empty_string() {
             let password = "testpassword";
-            let encrypted = aes::encrypt("", password, "base64").unwrap();
-            let decrypted = aes::decrypt(&encrypted, password, "base64").unwrap();
+            let key_size = "192";
+            let encrypted = aes::encrypt("", password, key_size, "base64").unwrap();
+            let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
             assert_eq!(decrypted, "");
         }
 
         #[test]
+        fn test_special_characters() {
+            let original = "!@#$%^&*()_+-={}[]|\\:;\"'<>?,./~`";
+            let password = "special_chars_test";
+            let key_size = "256";
+            let encrypted = aes::encrypt(original, password, key_size, "base64").unwrap();
+            let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
+            assert_eq!(decrypted, original);
+        }
+
+        #[test]
         fn test_invalid_encoding() {
-            assert!(aes::encrypt("Hello", "password", "invalid").is_err());
-            assert!(aes::decrypt("data", "password", "invalid").is_err());
+            assert!(aes::encrypt("Hello", "password", "256", "invalid").is_err());
+            assert!(aes::decrypt("data", "password", "128", "invalid").is_err());
+        }
+
+        #[test]
+        fn test_hex_output_format() {
+            let encrypted = aes::encrypt("test", "password", "256", "hex").unwrap();
+            // Should be even length (each byte = 2 hex chars)
+            assert_eq!(encrypted.len() % 2, 0);
+            // Should only contain hex characters
+            assert!(encrypted.chars().all(|c| "0123456789abcdef".contains(c)));
+        }
+
+        #[test]
+        fn test_base64_output_format() {
+            let encrypted = aes::encrypt("test", "password", "128", "base64").unwrap();
+            // Should be valid base64
+            assert!(crate::utils::from_base64(&encrypted).is_ok());
+            // Should only contain base64 characters
+            assert!(encrypted.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
+        }
+
+        #[test]
+        fn test_invalid_hex_input() {
+            // Test decryption with invalid hex
+            assert!(aes::decrypt("invalid_hex", "password", "256", "hex").is_err());
+            assert!(aes::decrypt("zz", "password", "192", "hex").is_err());
+            assert!(aes::decrypt("a", "password", "128", "hex").is_err()); // Odd length
+        }
+
+        #[test]
+        fn test_invalid_base64_input() {
+            // Test decryption with invalid base64
+            assert!(aes::decrypt("invalid_base64!", "password", "256", "base64").is_err());
+            assert!(aes::decrypt("@#$%", "password", "128", "base64").is_err());
+        }
+
+        #[test]
+        fn test_case_sensitivity() {
+            let text = "Test Message";
+            let key_size = "256";
+            let encrypted1 = aes::encrypt(text, "Password", key_size, "base64").unwrap();
+            let encrypted2 = aes::encrypt(text, "password", key_size, "base64").unwrap();
+            assert_ne!(encrypted1, encrypted2);
+        }
+
+        #[test]
+        fn test_repeated_calls() {
+            let text = "Consistency Test";
+            let password = "testpassword";
+            let key_size = "192";
+            let encrypted1 = aes::encrypt(text, password, key_size, "base64").unwrap();
+            let encrypted2 = aes::encrypt(text, password, key_size, "base64").unwrap();
+            assert_eq!(encrypted1, encrypted2);
+        }
+
+        #[test]
+        fn test_wrong_key_size_for_decryption() {
+            let original = "Test message";
+            let password = "testpassword";
+            
+            // Encrypt with 256-bit key
+            let encrypted = aes::encrypt(original, password, "256", "base64").unwrap();
+            
+            // Try to decrypt with different key sizes - should fail or produce garbage
+            let decrypted_128 = aes::decrypt(&encrypted, password, "128", "base64");
+            let decrypted_192 = aes::decrypt(&encrypted, password, "192", "base64");
+            
+            // These might succeed but produce wrong results
+            if let Ok(result_128) = decrypted_128 {
+                assert_ne!(result_128, original);
+            }
+            if let Ok(result_192) = decrypted_192 {
+                assert_ne!(result_192, original);
+            }
+            
+            // Correct key size should work
+            let decrypted_correct = aes::decrypt(&encrypted, password, "256", "base64").unwrap();
+            assert_eq!(decrypted_correct, original);
+        }
+
+        #[test]
+        fn test_block_size_padding() {
+            let password = "padtest";
+            let key_size = "128";
+            
+            // Test various input lengths to verify padding works correctly
+            for length in 1..=50 {
+                let input = "a".repeat(length);
+                let encrypted = aes::encrypt(&input, password, key_size, "base64").unwrap();
+                let decrypted = aes::decrypt(&encrypted, password, key_size, "base64").unwrap();
+                assert_eq!(decrypted, input, "Failed at length: {}", length);
+            }
+        }
+
+        #[test]
+        fn test_cross_encoding_compatibility() {
+            let original = "Cross encoding test";
+            let password = "crosskey";
+            let key_size = "256";
+            
+            let encrypted_hex = aes::encrypt(original, password, key_size, "hex").unwrap();
+            let encrypted_b64 = aes::encrypt(original, password, key_size, "base64").unwrap();
+            
+            // Both should decrypt to same result
+            let decrypted_from_hex = aes::decrypt(&encrypted_hex, password, key_size, "hex").unwrap();
+            let decrypted_from_b64 = aes::decrypt(&encrypted_b64, password, key_size, "base64").unwrap();
+            
+            assert_eq!(decrypted_from_hex, original);
+            assert_eq!(decrypted_from_b64, original);
+            assert_eq!(decrypted_from_hex, decrypted_from_b64);
         }
     }
 }

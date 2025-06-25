@@ -115,12 +115,16 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
+            let key_size = interactive::prompt_for_choices(
+                "Select AES key size",
+                &["128", "192", "256"]
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select output encoding",
                 &["base64", "hex"]
             )?;
-            let encrypted = aes::encrypt(&input, &password, &encoding)?;
-            format!("Encrypted text ({}): {}", encoding, encrypted)
+            let encrypted = aes::encrypt(&input, &password, &key_size, &encoding)?;
+            format!("Encrypted text (AES-{}, {}): {}", key_size, encoding, encrypted)
         },
         _ if algorithm.des => {
             let key = interactive::prompt_for_input("Enter key (exactly 8 characters)")?;
@@ -186,11 +190,15 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
+            let key_size = interactive::prompt_for_choices(
+                "Select AES key size",
+                &["128", "192", "256"]
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select input encoding",
                 &["base64", "hex"]
             )?;
-            let decrypted = aes::decrypt(&input, &password, &encoding)?;
+            let decrypted = aes::decrypt(&input, &password, &key_size, &encoding)?;
             format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.des => {
