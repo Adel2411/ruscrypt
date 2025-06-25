@@ -1,8 +1,8 @@
 use anyhow::Result;
 use crate::{hash::sha256, utils::{from_base64, from_hex, pad_data, remove_padding, to_base64, to_hex}};
 
-/// Encrypts data using simplified AES with specified encoding and key size
-pub fn encrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Result<String> {
+/// Encrypts data using simplified AES with specified key size, mode, and encoding
+pub fn encrypt(data: &str, password: &str, key_size: &str, mode: &str, encoding: &str) -> Result<String> {
     if password.is_empty() {
         return Err(anyhow::anyhow!("Password cannot be empty"));
     }
@@ -19,11 +19,11 @@ pub fn encrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Re
     let key = derive_key(password, key_bits)?;
     let data_bytes = pad_data(data.as_bytes()); // Uses 16-byte padding for AES
     
-    let mut encrypted = Vec::new();
-    for chunk in data_bytes.chunks(16) {
-        let encrypted_block = aes_encrypt_block(chunk, &key, key_bits)?;
-        encrypted.extend_from_slice(&encrypted_block);
-    }
+    let encrypted = match mode.to_lowercase().as_str() {
+        "ecb" => encrypt_ecb(&data_bytes, &key, key_bits)?,
+        "cbc" => encrypt_cbc(&data_bytes, &key, key_bits)?,
+        _ => return Err(anyhow::anyhow!("Unsupported mode: {}. Use 'ECB' or 'CBC'", mode))
+    };
     
     // Convert to specified encoding
     match encoding.to_lowercase().as_str() {
@@ -33,8 +33,8 @@ pub fn encrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Re
     }
 }
 
-/// Decrypts data using simplified AES with specified encoding and key size
-pub fn decrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Result<String> {
+/// Decrypts data using simplified AES with specified key size, mode, and encoding
+pub fn decrypt(data: &str, password: &str, key_size: &str, mode: &str, encoding: &str) -> Result<String> {
     if password.is_empty() {
         return Err(anyhow::anyhow!("Password cannot be empty"));
     }
@@ -55,20 +55,91 @@ pub fn decrypt(data: &str, password: &str, key_size: &str, encoding: &str) -> Re
     };
     
     let key = derive_key(password, key_bits)?;
-    let mut decrypted = Vec::new();
     
-    for chunk in encrypted_bytes.chunks(16) {
-        if chunk.len() != 16 {
-            return Err(anyhow::anyhow!("Invalid encrypted data length"));
-        }
-        let decrypted_block = aes_decrypt_block(chunk, &key, key_bits)?;
-        decrypted.extend_from_slice(&decrypted_block);
-    }
+    let decrypted = match mode.to_lowercase().as_str() {
+        "ecb" => decrypt_ecb(&encrypted_bytes, &key, key_bits)?,
+        "cbc" => decrypt_cbc(&encrypted_bytes, &key, key_bits)?,
+        _ => return Err(anyhow::anyhow!("Unsupported mode: {}. Use 'ECB' or 'CBC'", mode))
+    };
     
     // Remove padding and convert to string
     let unpadded = remove_padding(&decrypted)?;
     String::from_utf8(unpadded)
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in decrypted data: {}", e))
+}
+
+/// AES encryption in ECB mode
+fn encrypt_ecb(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
+    let mut encrypted = Vec::new();
+    
+    for chunk in data.chunks(16) {
+        let encrypted_block = aes_encrypt_block(chunk, key, key_bits)?;
+        encrypted.extend_from_slice(&encrypted_block);
+    }
+    
+    Ok(encrypted)
+}
+
+/// AES decryption in ECB mode
+fn decrypt_ecb(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
+    let mut decrypted = Vec::new();
+    
+    for chunk in data.chunks(16) {
+        if chunk.len() != 16 {
+            return Err(anyhow::anyhow!("Invalid encrypted data length"));
+        }
+        let decrypted_block = aes_decrypt_block(chunk, key, key_bits)?;
+        decrypted.extend_from_slice(&decrypted_block);
+    }
+    
+    Ok(decrypted)
+}
+
+/// AES encryption in CBC mode
+fn encrypt_cbc(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
+    let mut encrypted = Vec::new();
+    let mut previous_block = [0u8; 16]; // IV (Initialization Vector) - all zeros for simplicity
+    
+    for chunk in data.chunks(16) {
+        // XOR with previous ciphertext (or IV for first block)
+        let mut xor_block = [0u8; 16];
+        for (i, &byte) in chunk.iter().enumerate() {
+            if i < 16 {
+                xor_block[i] = byte ^ previous_block[i];
+            }
+        }
+        
+        let encrypted_block = aes_encrypt_block(&xor_block, key, key_bits)?;
+        encrypted.extend_from_slice(&encrypted_block);
+        previous_block = encrypted_block;
+    }
+    
+    Ok(encrypted)
+}
+
+/// AES decryption in CBC mode
+fn decrypt_cbc(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
+    let mut decrypted = Vec::new();
+    let mut previous_block = [0u8; 16]; // IV (Initialization Vector) - all zeros for simplicity
+    
+    for chunk in data.chunks(16) {
+        if chunk.len() != 16 {
+            return Err(anyhow::anyhow!("Invalid encrypted data length"));
+        }
+        
+        let decrypted_block = aes_decrypt_block(chunk, key, key_bits)?;
+        
+        // XOR with previous ciphertext (or IV for first block)
+        let mut final_block = [0u8; 16];
+        for i in 0..16 {
+            final_block[i] = decrypted_block[i] ^ previous_block[i];
+        }
+        
+        decrypted.extend_from_slice(&final_block);
+        previous_block.copy_from_slice(chunk);
+    }
+    
+    Ok(decrypted)
 }
 
 /// Derives key from password using our custom SHA-256 with specified key size

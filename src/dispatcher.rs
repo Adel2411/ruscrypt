@@ -119,24 +119,32 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
                 "Select AES key size",
                 &["128", "192", "256"]
             )?;
+            let mode = interactive::prompt_for_choices(
+                "Select encryption mode",
+                &["ECB", "CBC"]
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select output encoding",
                 &["base64", "hex"]
             )?;
-            let encrypted = aes::encrypt(&input, &password, &key_size, &encoding)?;
-            format!("Encrypted text (AES-{}, {}): {}", key_size, encoding, encrypted)
+            let encrypted = aes::encrypt(&input, &password, &key_size, &mode, &encoding)?;
+            format!("Encrypted text (AES-{}, {}, {}): {}", key_size, mode, encoding, encrypted)
         },
         _ if algorithm.des => {
             let key = interactive::prompt_for_input("Enter key (exactly 8 characters)")?;
             if key.len() != 8 {
                 return Err(anyhow::anyhow!("DES key must be exactly 8 characters long"));
             }
+            let mode = interactive::prompt_for_choices(
+                "Select encryption mode",
+                &["ECB", "CBC"]
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select output encoding",
                 &["base64", "hex"]
             )?;
-            let encrypted = des::encrypt(&input, &key, &encoding)?;
-            format!("Encrypted text ({}): {}", encoding, encrypted)
+            let encrypted = des::encrypt(&input, &key, &mode, &encoding)?;
+            format!("Encrypted text (DES, {}, {}): {}", mode, encoding, encrypted)
         },
         _ if algorithm.rsa => {
             let key_size = interactive::prompt_for_choices(
@@ -194,11 +202,15 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
                 "Select AES key size",
                 &["128", "192", "256"]
             )?;
+            let mode = interactive::prompt_for_choices(
+                "Select encryption mode",
+                &["ECB", "CBC"]
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select input encoding",
                 &["base64", "hex"]
             )?;
-            let decrypted = aes::decrypt(&input, &password, &key_size, &encoding)?;
+            let decrypted = aes::decrypt(&input, &password, &key_size, &mode, &encoding)?;
             format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.des => {
@@ -206,11 +218,15 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             if key.len() != 8 {
                 return Err(anyhow::anyhow!("DES key must be exactly 8 characters long"));
             }
+            let mode = interactive::prompt_for_choices(
+                "Select encryption mode",
+                &["ECB", "CBC"]
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select input encoding",
                 &["base64", "hex"]
             )?;
-            let decrypted = des::decrypt(&input, &key, &encoding)?;
+            let decrypted = des::decrypt(&input, &key, &mode, &encoding)?;
             format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.rsa => {
