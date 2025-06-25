@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crate::utils::{to_base64, from_base64};
+use crate::utils::{to_base64, from_base64, to_hex, from_hex};
 
 /// Encrypts data using RC4 stream cipher with specified encoding
 pub fn encrypt(data: &str, key: &str, encoding: &str) -> Result<String> {
@@ -52,29 +52,6 @@ pub fn decrypt(data: &str, key: &str, encoding: &str) -> Result<String> {
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in decrypted data: {}", e))
 }
 
-/// Converts bytes to hexadecimal string
-fn to_hex(data: &[u8]) -> String {
-    data.iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>()
-}
-
-/// Converts hex string to bytes
-fn from_hex(hex: &str) -> Result<Vec<u8>> {
-    if hex.len() % 2 != 0 {
-        return Err(anyhow::anyhow!("Hex string must have even length"));
-    }
-    
-    hex.chars()
-        .collect::<Vec<char>>()
-        .chunks(2)
-        .map(|chunk| {
-            let hex_str: String = chunk.iter().collect();
-            u8::from_str_radix(&hex_str, 16)
-                .map_err(|e| anyhow::anyhow!("Invalid hex character: {}", e))
-        })
-        .collect()
-}
 
 /// Generates RC4 keystream
 fn generate_keystream(key: &[u8], length: usize) -> Result<Vec<u8>> {

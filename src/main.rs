@@ -8,6 +8,7 @@ mod utils;
 mod classical;
 mod hash;
 mod stream;
+mod block;
 
 #[cfg(test)]
 mod tests;

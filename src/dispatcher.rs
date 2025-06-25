@@ -6,6 +6,7 @@ use crate::classical::{caesar, rail_fence, vigenere, playfair};
 use crate::stream::rc4;
 use crate::hash::{md5, sha1, sha256};
 use crate::interactive;
+use crate::block::{des, aes};
 
 pub fn dispatch_command(args: Args) -> Result<()> {
     // Print the parsed arguments
@@ -114,11 +115,24 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
-            format!("AES encryption will be implemented soon for password {} for input: {}", password, input)
+            let encoding = interactive::prompt_for_choices(
+                "Select output encoding",
+                &["base64", "hex"]
+            )?;
+            let encrypted = aes::encrypt(&input, &password, &encoding)?;
+            format!("Encrypted text ({}): {}", encoding, encrypted)
         },
         _ if algorithm.des => {
-            let key = interactive::prompt_for_password("Enter key (8 characters)")?;
-            format!("DES encryption will be implemented soon for key {} for input: {}", key, input)
+            let key = interactive::prompt_for_input("Enter key (exactly 8 characters)")?;
+            if key.len() != 8 {
+                return Err(anyhow::anyhow!("DES key must be exactly 8 characters long"));
+            }
+            let encoding = interactive::prompt_for_choices(
+                "Select output encoding",
+                &["base64", "hex"]
+            )?;
+            let encrypted = des::encrypt(&input, &key, &encoding)?;
+            format!("Encrypted text ({}): {}", encoding, encrypted)
         },
         _ if algorithm.rsa => {
             let key_size = interactive::prompt_for_choices(
@@ -172,11 +186,24 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         },
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
-            format!("AES decryption will be implemented soon for password {} for input: {}", password, input)
+            let encoding = interactive::prompt_for_choices(
+                "Select input encoding",
+                &["base64", "hex"]
+            )?;
+            let decrypted = aes::decrypt(&input, &password, &encoding)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.des => {
-            let key = interactive::prompt_for_password("Enter key (8 characters)")?;
-            format!("DES decryption will be implemented soon for key {} for input: {}", key, input)
+            let key = interactive::prompt_for_input("Enter key (exactly 8 characters)")?;
+            if key.len() != 8 {
+                return Err(anyhow::anyhow!("DES key must be exactly 8 characters long"));
+            }
+            let encoding = interactive::prompt_for_choices(
+                "Select input encoding",
+                &["base64", "hex"]
+            )?;
+            let decrypted = des::decrypt(&input, &key, &encoding)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.rsa => {
             let private_key = interactive::prompt_for_input("Enter or paste private key")?;
