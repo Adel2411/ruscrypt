@@ -58,9 +58,9 @@
 | 🏛️ **Classical Ciphers** | 🔐 **Stream & Block Ciphers** | 🔑 **Asymmetric Encryption** | 🔢 **Hash Functions** |
 | :----------------------: | :---------------------------: | :--------------------------: | :-------------------: |
 |      Caesar Cipher       |              RC4              |             RSA              |          MD5          |
-|     Vigenère Cipher      |              AES              |        Diffie-Hellman        |         SHA-1         |
-|     Playfair Cipher      |              DES              |              -               |        SHA-256        |
-|    Rail Fence Cipher     |               -               |              -               |           -           |
+|     Vigenère Cipher      |         AES (128/192/256)         |        Diffie-Hellman        |         SHA-1         |
+|     Playfair Cipher      |         DES (ECB/CBC)         |              -               |        SHA-256        |
+|    Rail Fence Cipher     |         AES (ECB/CBC)         |              -               |           -           |
 
 </div>
 
@@ -72,9 +72,9 @@
 ruscrypt/
 ├── Cargo.toml                  # Project manifest
 ├── README.md                   # Documentation
-├── LICENSE                     # MIT license
 ├── src/
 │   ├── main.rs                 # Entry point
+│   ├── lib.rs                  # Library exports
 │   ├── cli.rs                  # CLI parsing
 │   ├── dispatcher.rs           # Command routing
 │   ├── interactive.rs          # User prompts
@@ -99,7 +99,7 @@ ruscrypt/
 │   ├── asym/                   # Asymmetric crypto
 │   │   ├── mod.rs
 │   │   ├── rsa.rs
-│   │   └── diffie_hellman.rs
+│   │   └── dh.rs
 │   │
 │   ├── hash/                   # Hash functions
 │   │   ├── mod.rs
@@ -109,11 +109,12 @@ ruscrypt/
 │   │
 │   └── tests/                  # Test modules
 │       ├── mod.rs
+│       ├── classical.rs
+│       ├── stream.rs
+│       ├── block.rs
+│       ├── hash.rs
+│       ├── asym.rs
 │       └── integration.rs
-│
-└── examples/                   # Usage examples
-    ├── demo.rs
-    └── quick_start.rs
 ```
 
 ---
@@ -151,6 +152,9 @@ ruscrypt <encrypt|decrypt> --<algorithm>
 
 # For hashing operations
 ruscrypt hash --<algorithm>
+
+# For key exchange protocols
+ruscrypt exchange --<protocol>
 ```
 
 ### Interactive Experience
@@ -168,12 +172,15 @@ Encrypted text: Khoor Zruog
 $ ruscrypt encrypt --aes
 Enter text to encrypt: Secret message
 Enter password: ********
+Select AES key size: 256
+Select encryption mode: CBC
+Select output encoding: base64
 Encrypted text: [base64 encoded result]
 
 # Example: SHA-256 hashing
 $ ruscrypt hash --sha256
 Enter text to hash: password123
-Hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+SHA-256 hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
 ```
 
 ---
@@ -279,12 +286,14 @@ ruscrypt encrypt --rc4
 # Prompts:
 # - Text to encrypt
 # - Key (variable length)
+# - Output encoding (base64/hex)
 
 # Decrypt
 ruscrypt decrypt --rc4
 # Prompts:
 # - Text to decrypt
 # - Key (same as encryption)
+# - Input encoding (base64/hex)
 ```
 
 **Note**: Legacy algorithm, use for educational purposes only.
@@ -300,12 +309,18 @@ ruscrypt encrypt --aes
 # Prompts:
 # - Text to encrypt
 # - Password
+# - Key size (128/192/256)
+# - Mode (ECB/CBC)
+# - Output encoding (base64/hex)
 
 # Decrypt
 ruscrypt decrypt --aes
 # Prompts:
 # - Text to decrypt
 # - Password (same as encryption)
+# - Key size (same as encryption)
+# - Mode (same as encryption)
+# - Input encoding (same as encryption)
 ```
 
 **Security**: Industry-standard symmetric encryption.
@@ -320,13 +335,17 @@ ruscrypt decrypt --aes
 ruscrypt encrypt --des
 # Prompts:
 # - Text to encrypt
-# - Key (8 characters)
+# - Key (exactly 8 characters)
+# - Mode (ECB/CBC)
+# - Output encoding (base64/hex)
 
 # Decrypt
 ruscrypt decrypt --des
 # Prompts:
 # - Text to decrypt
 # - Key (same as encryption)
+# - Mode (same as encryption)
+# - Input encoding (same as encryption)
 ```
 
 **Note**: Legacy algorithm, use for educational purposes only.
@@ -343,14 +362,16 @@ ruscrypt decrypt --des
 ruscrypt encrypt --rsa
 # Prompts:
 # - Text to encrypt
-# - Key size (1024, 2048, 4096)
+# - Key size (512/1024/2048)
+# - Output encoding (base64/hex)
 # Tool generates key pair automatically
 
 # Decrypt
 ruscrypt decrypt --rsa
 # Prompts:
 # - Text to decrypt
-# - Private key (from encryption step)
+# - Private key (format: n:d)
+# - Input encoding (base64/hex)
 ```
 
 **Use case**: Small data encryption and digital signatures.
@@ -361,13 +382,13 @@ ruscrypt decrypt --rsa
 <summary><strong>Diffie-Hellman</strong> - Key Exchange</summary>
 
 ```bash
-# Key exchange simulation
-ruscrypt encrypt --dh
-# Interactive key exchange process:
-# - Generates private key
-# - Shows public key
-# - Prompts for other party's public key
-# - Computes shared secret
+# Key exchange operations
+ruscrypt exchange --dh
+# Options:
+# - Interactive Simulation (Alice & Bob)
+# - Manual Exchange - Start Session
+# - Manual Exchange - Complete with Other's Key
+# - Mathematical Concept Demo
 ```
 
 **Use case**: Secure key exchange demonstration.
@@ -422,10 +443,10 @@ ruscrypt hash --sha256
 
 ## 💡 Examples
 
-### Interactive Session Examples
+### Classical Cipher Examples
 
 ```bash
-# 🎯 Classical cipher example
+# 🏛️ Caesar cipher example
 $ ruscrypt encrypt --caesar
 Enter text to encrypt: HELLO WORLD
 Enter shift value (1-25): 5
@@ -435,54 +456,79 @@ $ ruscrypt decrypt --caesar
 Enter text to decrypt: MJQQT BTWQI
 Enter shift value (1-25): 5
 Decrypted text: HELLO WORLD
+
+# 🏛️ Vigenère cipher example
+$ ruscrypt encrypt --vigenere
+Enter text to encrypt: ATTACKATDAWN
+Enter keyword: LEMON
+Encrypted text: LXFOPVEFRNHR
 ```
 
+### Modern Encryption Examples
+
 ```bash
-# 🔐 Modern encryption example
+# 🔐 AES encryption example
 $ ruscrypt encrypt --aes
 Enter text to encrypt: This is a secret message
 Enter password: mySecurePassword123
-Encrypted text: U2FsdGVkX1+vupppZksvRf5pq5g5XjFRlipRkwB0K1Y96Qsv2Lm+31cmzaAILwyt
+Select AES key size: 256
+Select encryption mode: CBC
+Select output encoding: base64
+Encrypted text (AES-256, CBC, base64): U2FsdGVkX1+vupppZksvRf5pq5g5XjFRlipRkwB0K1Y96Qsv2Lm+31cmzaAILwyt
 
-$ ruscrypt decrypt --aes
-Enter text to decrypt: U2FsdGVkX1+vupppZksvRf5pq5g5XjFRlipRkwB0K1Y96Qsv2Lm+31cmzaAILwyt
-Enter password: mySecurePassword123
-Decrypted text: This is a secret message
+# 🔐 RSA encryption example
+$ ruscrypt encrypt --rsa
+Enter text to encrypt: Hello RSA
+Select RSA key size: 1024
+Select output encoding: base64
+
+🔐 RSA Encryption Complete!
+📤 Encrypted data: SGVsbG8gUlNB...
+🔑 Private key (SAVE THIS!): 12345678:98765432
+⚠️  Keep your private key secure - you'll need it for decryption!
 ```
 
+### Hash Function Examples
+
 ```bash
-# 🔢 Hash function example
+# 🔢 Hash function examples
 $ ruscrypt hash --sha256
 Enter text to hash: password123
-Hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+SHA-256 hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
 
 $ ruscrypt hash --md5
 Enter text to hash: hello world
-Hash: 5d41402abc4b2a76b9719d911017c592
+MD5 hash: 5d41402abc4b2a76b9719d911017c592
+
+$ ruscrypt hash --sha1
+Enter text to hash: test
+SHA-1 hash: a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
 ```
 
-### Algorithm Comparison
+### Key Exchange Example
 
 ```bash
-# Compare different cipher types with the same input
-$ ruscrypt encrypt --caesar
-Enter text to encrypt: CRYPTOGRAPHY
-Enter shift value (1-25): 3
-Encrypted text: FUBSWRJUDSKB
+# 🔑 Diffie-Hellman key exchange
+$ ruscrypt exchange --dh
+Select Diffie-Hellman operation: Interactive Simulation (Alice & Bob)
 
-$ ruscrypt encrypt --vigenere
-Enter text to encrypt: CRYPTOGRAPHY
-Enter keyword: SECRET
-Encrypted text: UKWPVQJRAPLI
+🔑 Diffie-Hellman Key Exchange Simulation
+==========================================
 
-$ ruscrypt encrypt --aes
-Enter text to encrypt: CRYPTOGRAPHY
-Enter password: testkey
-Encrypted text: [encrypted base64 string]
+👩 Alice (You):
+  Prime (p):     2147483647
+  Generator (g): 2
+  Private key:   12345 (keep secret!)
+  Public key:    987654321 (share with Bob)
 
-$ ruscrypt hash --sha256
-Enter text to hash: CRYPTOGRAPHY
-Hash: 7d865e959b2466918c9863afca942d0fb89d7c9ac0c99bafc3749504ded97730
+👨 Bob (Simulated):
+  Private key:   67890 (Bob keeps secret)
+  Public key:    123456789 (Bob shares with you)
+
+🤝 Key Exchange Result:
+  Alice computed shared secret: 555666777
+  Bob computed shared secret:   555666777
+  ✅ SUCCESS: Both parties have the same shared secret!
 ```
 
 ---
@@ -499,9 +545,11 @@ cargo test
 cargo test -- --nocapture
 
 # ⚡ Run specific algorithm tests
-cargo test classical
-cargo test modern
-cargo test hash
+cargo test classical::tests
+cargo test stream::tests
+cargo test block::tests
+cargo test hash::tests
+cargo test asym::tests
 ```
 
 ### Manual Testing
@@ -522,7 +570,7 @@ ruscrypt encrypt --des
 
 # Test asymmetric encryption
 ruscrypt encrypt --rsa
-ruscrypt encrypt --dh
+ruscrypt exchange --dh
 
 # Test hash functions
 ruscrypt hash --md5
@@ -548,8 +596,8 @@ ruscrypt hash --sha256
 
 ```bash
 # ✅ Secure for modern use
-ruscrypt encrypt --aes      # Symmetric encryption
-ruscrypt encrypt --rsa      # Asymmetric encryption
+ruscrypt encrypt --aes      # Symmetric encryption (AES-256, CBC mode)
+ruscrypt encrypt --rsa      # Asymmetric encryption (2048+ bit keys)
 ruscrypt hash --sha256      # Cryptographic hashing
 
 # ❌ Educational/legacy only
@@ -559,6 +607,13 @@ ruscrypt encrypt --rc4      # Known vulnerabilities
 ruscrypt hash --md5         # Collision attacks possible
 ruscrypt hash --sha1        # Deprecated by NIST
 ```
+
+### 🔐 Key Management Best Practices
+
+- **AES**: Use strong passwords (12+ characters, mixed case, numbers, symbols)
+- **DES**: Use exactly 8 characters as required by the algorithm
+- **RSA**: Use 2048+ bit keys for real applications (512/1024 for education only)
+- **RC4**: Use random keys of appropriate length
 
 ---
 
@@ -590,6 +645,26 @@ We welcome contributions! Here's how to get started:
 | 🎨 **CLI Improvements** | Better interactive experience | 🟢 Easy    |
 | 📚 **Documentation**    | Examples and guides           | 🟢 Easy    |
 | 🧪 **Testing**          | More comprehensive tests      | 🟡 Medium  |
+
+### 🔧 Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/Adel2411/ruscrypt.git
+cd ruscrypt
+
+# Install dependencies
+cargo build
+
+# Run tests
+cargo test
+
+# Format code
+cargo fmt
+
+# Check for issues
+cargo clippy
+```
 
 ---
 
