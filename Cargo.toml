@@ -2,14 +2,20 @@
 name = "ruscrypt"
 version = "0.1.0"
 edition = "2021"
-authors = ["Adel2411"]
-description = "⚡ Lightning-fast cryptography toolkit built with Rust ⚡"
+authors = ["Adel2411 <your-email@example.com>"]
+description = "⚡ Lightning-fast cryptography toolkit built with Rust - A comprehensive CLI tool for classical and modern cryptographic operations"
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/Adel2411/ruscrypt"
 repository = "https://github.com/Adel2411/ruscrypt"
+documentation = "https://docs.rs/ruscrypt"
 keywords = ["cryptography", "encryption", "hash", "cli", "security"]
 categories = ["command-line-utilities", "cryptography"]
+exclude = [
+    "target/*",
+    ".git/*",
+    ".gitignore",
+]
 
 # Specify both library and binary
 [lib]
@@ -27,3 +33,16 @@ clap = { version = "4.3.19", features = ["derive"] }
 colored = "2.0.4"
 dialoguer = "0.10.4"
 rand = "0.9.1"
+
+[dev-dependencies]
+criterion = "0.6.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
