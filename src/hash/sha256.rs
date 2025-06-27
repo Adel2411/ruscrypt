@@ -1,6 +1,83 @@
+//! # SHA-256 Hash Function Implementation
+//! 
+//! SHA-256 (Secure Hash Algorithm 256-bit) is a cryptographic hash function
+//! that produces a 256-bit (32-byte) hash value, typically rendered as a
+//! 64-character hexadecimal string.
+//! 
+//! ✅ **Security Status**: SHA-256 is considered cryptographically secure
+//! and is widely used in modern applications including Bitcoin and TLS.
+//! 
+//! ## Properties
+//! 
+//! - **Deterministic**: Same input always produces same hash
+//! - **Fixed size**: Always outputs 256 bits (64 hex characters)
+//! - **Avalanche effect**: Small input changes cause large output changes
+//! - **One-way**: Computationally infeasible to reverse
+//! 
+//! ## Examples
+//! 
+//! ```rust
+//! use ruscrypt::hash::sha256;
+//! 
+//! let hash = sha256::hash("Hello, World!").unwrap();
+//! println!("SHA-256: {}", hash);
+//! assert_eq!(hash.len(), 64); // Always 64 hex characters
+//! 
+//! // Different inputs produce different hashes
+//! let hash1 = sha256::hash("Hello").unwrap();
+//! let hash2 = sha256::hash("Hello!").unwrap();
+//! assert_ne!(hash1, hash2);
+//! ```
+
 use anyhow::Result;
 
-/// Computes SHA-256 hash of input text
+/// Computes the SHA-256 hash of the input text.
+/// 
+/// This function implements the complete SHA-256 algorithm including:
+/// - Message preprocessing and padding
+/// - Processing in 512-bit blocks
+/// - 64 rounds of compression per block
+/// - Final hash value computation
+/// 
+/// # Arguments
+/// 
+/// * `input` - The text to hash (any UTF-8 string)
+/// 
+/// # Returns
+/// 
+/// Returns a 64-character lowercase hexadecimal string representing the
+/// 256-bit hash value.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::hash::sha256;
+/// 
+/// // Empty string
+/// let hash = sha256::hash("").unwrap();
+/// assert_eq!(hash, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+/// 
+/// // Simple text
+/// let hash = sha256::hash("abc").unwrap();
+/// assert_eq!(hash, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+/// 
+/// // Unicode support
+/// let hash = sha256::hash("Hello 世界").unwrap();
+/// assert_eq!(hash.len(), 64);
+/// 
+/// // Consistency check
+/// let hash1 = sha256::hash("test").unwrap();
+/// let hash2 = sha256::hash("test").unwrap();
+/// assert_eq!(hash1, hash2);
+/// ```
+/// 
+/// # Algorithm Details
+/// 
+/// The implementation follows RFC 6234 and includes:
+/// - Proper message padding with length encoding
+/// - 64 rounds of SHA-256 compression function
+/// - Correct handling of endianness
+/// - Support for messages of any length
 pub fn hash(input: &str) -> Result<String> {
     let bytes = input.as_bytes();
     let hash_bytes = sha256_hash(bytes);
@@ -14,7 +91,25 @@ pub fn hash(input: &str) -> Result<String> {
     Ok(hex_string)
 }
 
-/// Core SHA-256 implementation
+/// Core SHA-256 implementation that processes the padded message.
+/// 
+/// This function implements the SHA-256 algorithm as specified in FIPS 180-4.
+/// It processes the input in 512-bit chunks and applies the compression function.
+/// 
+/// # Arguments
+/// 
+/// * `input` - Raw bytes to hash
+/// 
+/// # Returns
+/// 
+/// Returns a 32-byte array containing the hash value.
+/// 
+/// # Implementation Notes
+/// 
+/// - Uses the official SHA-256 constants and round functions
+/// - Processes message in 512-bit (64-byte) blocks
+/// - Applies proper padding according to the standard
+/// - Implements the complete message schedule and compression
 fn sha256_hash(input: &[u8]) -> [u8; 32] {
     // SHA-256 constants (first 32 bits of fractional parts of cube roots of first 64 primes)
     const K: [u32; 64] = [

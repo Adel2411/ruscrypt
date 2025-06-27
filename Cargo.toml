@@ -34,9 +34,6 @@ colored = "2.0.4"
 dialoguer = "0.10.4"
 rand = "0.9.1"
 
-[dev-dependencies]
-criterion = "0.6.0"
-
 [profile.release]
 lto = true
 codegen-units = 1

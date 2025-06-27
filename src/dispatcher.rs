@@ -1,3 +1,22 @@
+//! # Command Dispatcher Module
+//! 
+//! This module handles the routing and execution of CLI commands. It takes parsed
+//! command-line arguments and dispatches them to the appropriate cryptographic
+//! functions while providing user interaction and formatted output.
+//! 
+//! ## Architecture
+//! 
+//! The dispatcher follows a pattern where:
+//! 1. Commands are parsed and displayed to the user
+//! 2. Interactive prompts gather necessary parameters
+//! 3. Appropriate cryptographic functions are called
+//! 4. Results are formatted and displayed
+//! 
+//! ## Error Handling
+//! 
+//! All functions return `Result<()>` to enable proper error propagation
+//! and user-friendly error messages.
+
 use anyhow::Result;
 use colored::*;
 
@@ -9,6 +28,36 @@ use crate::interactive;
 use crate::block::{des, aes};
 use crate::asym::{dh, rsa};
 
+/// Main command dispatcher function
+/// 
+/// This is the primary entry point for command execution. It displays the parsed
+/// command information to the user and then routes to the appropriate handler
+/// function based on the command type.
+/// 
+/// # Arguments
+/// 
+/// * `args` - Parsed command-line arguments containing the command and parameters
+/// 
+/// # Returns
+/// 
+/// Returns `Ok(())` on successful execution, or an error if the operation fails.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::{cli, dispatcher};
+/// 
+/// let args = cli::parse_args();
+/// dispatcher::dispatch_command(args)?;
+/// ```
+/// 
+/// # Errors
+/// 
+/// This function can return errors from:
+/// - Invalid algorithm selection
+/// - User input validation failures
+/// - Cryptographic operation failures
+/// - I/O errors during interactive prompts
 pub fn dispatch_command(args: Args) -> Result<()> {
     // Print the parsed arguments
     println!("\n{}", "📋 Parsed Command Arguments:".cyan());
@@ -62,6 +111,21 @@ pub fn dispatch_command(args: Args) -> Result<()> {
     Ok(())
 }
 
+/// Display detailed information about the selected encryption algorithm
+/// 
+/// Formats and prints algorithm-specific information including the algorithm
+/// name and which specific variant was selected by the user.
+/// 
+/// # Arguments
+/// 
+/// * `algorithm` - Reference to the selected encryption algorithm configuration
+/// 
+/// # Output
+/// 
+/// Prints formatted information to stdout including:
+/// - Algorithm name
+/// - Specific variant details
+/// - Any relevant security warnings
 fn print_algorithm_details(algorithm: &EncryptionAlgorithm) {
     let algo_name = crate::cli::get_algorithm_name(algorithm);
     println!("{}: {}", "Algorithm".yellow().bold(), algo_name.white());
@@ -78,6 +142,21 @@ fn print_algorithm_details(algorithm: &EncryptionAlgorithm) {
     if algorithm.rsa { println!("  - RSA asymmetric encryption selected"); }
 }
 
+/// Display detailed information about the selected hash algorithm
+/// 
+/// Formats and prints hash algorithm-specific information including the
+/// algorithm name and security considerations.
+/// 
+/// # Arguments
+/// 
+/// * `algorithm` - Reference to the selected hash algorithm configuration
+/// 
+/// # Output
+/// 
+/// Prints formatted information to stdout including:
+/// - Hash algorithm name
+/// - Output size information
+/// - Security status (secure/deprecated)
 fn print_hash_algorithm_details(algorithm: &HashAlgorithm) {
     let algo_name = crate::cli::get_hash_algorithm_name(algorithm);
     println!("{}: {}", "Algorithm".yellow().bold(), algo_name.white());
@@ -89,6 +168,21 @@ fn print_hash_algorithm_details(algorithm: &HashAlgorithm) {
     if algorithm.sha256 { println!("  - SHA-256 hash function selected"); }
 }
 
+/// Display detailed information about the selected key exchange protocol
+/// 
+/// Formats and prints protocol-specific information including the protocol
+/// name and implementation status.
+/// 
+/// # Arguments
+/// 
+/// * `protocol` - Reference to the selected key exchange protocol configuration
+/// 
+/// # Output
+/// 
+/// Prints formatted information to stdout including:
+/// - Protocol name
+/// - Implementation status
+/// - Usage recommendations
 fn print_keyexchange_protocol_details(protocol: &ExchangeProtocol) {
     let protocol_name = crate::cli::get_keyexchange_protocol_name(protocol);
     println!("{}: {}", "Protocol".yellow().bold(), protocol_name.white());
@@ -99,6 +193,38 @@ fn print_keyexchange_protocol_details(protocol: &ExchangeProtocol) {
     if protocol.ecdh { println!("  - ECDH key exchange protocol selected (not implemented)"); }
 }
 
+/// Handle encryption operations for all supported algorithms
+/// 
+/// This function manages the encryption workflow by:
+/// 1. Prompting for input text
+/// 2. Gathering algorithm-specific parameters (keys, shifts, etc.)
+/// 3. Calling the appropriate encryption function
+/// 4. Displaying the encrypted result
+/// 
+/// # Arguments
+/// 
+/// * `algorithm` - The encryption algorithm configuration specifying which algorithm to use
+/// 
+/// # Returns
+/// 
+/// Returns `Ok(())` on successful encryption, or an error if the operation fails.
+/// 
+/// # Interactive Prompts
+/// 
+/// Depending on the algorithm, this function may prompt for:
+/// - Shift values (Caesar cipher)
+/// - Keywords (Vigenère, Playfair)
+/// - Keys and passwords (RC4, AES, DES, RSA)
+/// - Encoding preferences (base64, hex)
+/// - Algorithm parameters (key sizes, modes)
+/// 
+/// # Errors
+/// 
+/// Can return errors from:
+/// - Invalid user input
+/// - Cryptographic operation failures
+/// - I/O errors during prompts
+/// - Algorithm-specific validation failures
 fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     let input = interactive::prompt_for_input("Enter text to encrypt")?;
     
@@ -191,6 +317,36 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     Ok(())
 }
 
+/// Handle decryption operations for all supported algorithms
+/// 
+/// This function manages the decryption workflow by:
+/// 1. Prompting for encrypted text
+/// 2. Gathering algorithm-specific parameters (keys, shifts, etc.)
+/// 3. Calling the appropriate decryption function
+/// 4. Displaying the decrypted result
+/// 
+/// # Arguments
+/// 
+/// * `algorithm` - The encryption algorithm configuration specifying which algorithm to use
+/// 
+/// # Returns
+/// 
+/// Returns `Ok(())` on successful decryption, or an error if the operation fails.
+/// 
+/// # Interactive Prompts
+/// 
+/// Similar to encryption, but may include additional prompts for:
+/// - Private keys (RSA)
+/// - Initialization vectors (block ciphers)
+/// - Input encoding formats (base64, hex)
+/// 
+/// # Errors
+/// 
+/// Can return errors from:
+/// - Invalid encrypted text format
+/// - Incorrect keys or parameters
+/// - Cryptographic operation failures
+/// - Encoding/decoding errors
 fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     let input = interactive::prompt_for_input("Enter text to decrypt")?;
     
@@ -273,6 +429,34 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
     Ok(())
 }
 
+/// Handle hashing operations for all supported hash functions
+/// 
+/// This function manages the hashing workflow by:
+/// 1. Prompting for input text
+/// 2. Computing the hash using the selected algorithm
+/// 3. Displaying the hash value in hexadecimal format
+/// 
+/// # Arguments
+/// 
+/// * `algorithm` - The hash algorithm configuration specifying which function to use
+/// 
+/// # Returns
+/// 
+/// Returns `Ok(())` on successful hashing, or an error if the operation fails.
+/// 
+/// # Output Format
+/// 
+/// Hash values are displayed as hexadecimal strings:
+/// - MD5: 32 characters
+/// - SHA-1: 40 characters  
+/// - SHA-256: 64 characters
+/// 
+/// # Errors
+/// 
+/// Can return errors from:
+/// - Hash computation failures
+/// - I/O errors during prompts
+/// - Memory allocation issues for large inputs
 fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
     let input = interactive::prompt_for_input("Enter text to hash")?;
     
@@ -296,6 +480,43 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
     Ok(())
 }
 
+/// Handle key exchange protocol operations
+/// 
+/// This function manages key exchange workflows by:
+/// 1. Presenting protocol-specific options
+/// 2. Managing interactive or manual exchange modes
+/// 3. Facilitating secure key establishment
+/// 4. Displaying shared secrets and educational information
+/// 
+/// # Arguments
+/// 
+/// * `protocol` - The key exchange protocol configuration
+/// 
+/// # Returns
+/// 
+/// Returns `Ok(())` on successful key exchange, or an error if the operation fails.
+/// 
+/// # Supported Modes
+/// 
+/// For Diffie-Hellman:
+/// - **Interactive Simulation**: Demonstrates Alice & Bob exchange
+/// - **Manual Exchange**: Real-world usage with other parties
+/// - **Mathematical Demo**: Shows the underlying mathematics
+/// 
+/// # Security Considerations
+/// 
+/// The function provides educational warnings about:
+/// - Parameter selection importance
+/// - Man-in-the-middle attack risks
+/// - Proper implementation requirements
+/// 
+/// # Errors
+/// 
+/// Can return errors from:
+/// - Invalid protocol selection
+/// - Mathematical computation failures
+/// - User input validation errors
+/// - Network communication issues (future implementations)
 fn handle_key_exchange(protocol: ExchangeProtocol) -> Result<()> {
     let result = match true {
         _ if protocol.dh => {

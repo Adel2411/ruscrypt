@@ -1,23 +1,90 @@
+//! # Diffie-Hellman Key Exchange Implementation
+//! 
+//! This module implements the Diffie-Hellman key exchange protocol, which allows
+//! two parties to establish a shared secret over an insecure channel without
+//! prior shared secrets.
+//! 
+//! ✅ **Security Status**: The Diffie-Hellman algorithm itself is secure, but
+//! this implementation uses small parameters for educational purposes only.
+//! 
+//! ## Protocol Overview
+//! 
+//! 1. **Setup**: Both parties agree on public parameters (prime p, generator g)
+//! 2. **Key Generation**: Each party generates a private key and computes a public key
+//! 3. **Exchange**: Parties exchange their public keys
+//! 4. **Shared Secret**: Each party computes the same shared secret using their private key and the other's public key
+//! 
+//! ## Examples
+//! 
+//! ```rust
+//! use ruscrypt::asym::dh::DHParticipant;
+//! 
+//! // Create two participants
+//! let mut alice = DHParticipant::new();
+//! let mut bob = DHParticipant::new();
+//! 
+//! // Exchange public keys and compute shared secret
+//! let alice_secret = alice.compute_shared_secret(bob.public_key).unwrap();
+//! let bob_secret = bob.compute_shared_secret(alice.public_key).unwrap();
+//! 
+//! assert_eq!(alice_secret, bob_secret);
+//! ```
+
 use anyhow::Result;
 use rand::Rng;
 
-/// Represents a Diffie-Hellman key exchange participant
+/// Represents a participant in the Diffie-Hellman key exchange protocol.
+/// 
+/// Each participant has a private key (kept secret) and a public key (shared openly).
+/// The participant can compute a shared secret using their private key and
+/// another participant's public key.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::dh::DHParticipant;
+/// 
+/// let participant = DHParticipant::new();
+/// println!("Private key: {} (keep secret!)", participant.private_key);
+/// println!("Public key: {} (share this)", participant.public_key);
+/// ```
 #[derive(Debug)]
 pub struct DHParticipant {
+    /// The participant's private key (must be kept secret)
     pub private_key: u64,
+    /// The participant's public key (can be shared openly)
     pub public_key: u64,
+    /// The computed shared secret (None until computed)
     pub shared_secret: Option<u64>,
+    /// The agreed-upon prime modulus
     pub prime: u64,
+    /// The agreed-upon generator
     pub generator: u64,
 }
 
-/// Simple Diffie-Hellman parameters for educational purposes
-/// Note: These are small values for demonstration only - NOT secure for real use!
+/// DH parameters for educational purposes.
+/// 
+/// ⚠️ **Security Warning**: These values are small for demonstration only.
+/// Real applications should use much larger primes (at least 2048 bits).
 const DH_PRIME: u64 = 2147483647; // 2^31 - 1 (Mersenne prime)
 const DH_GENERATOR: u64 = 2;
 
 impl DHParticipant {
-    /// Create a new participant with a random private key
+    /// Creates a new DH participant with a randomly generated private key.
+    /// 
+    /// The private key is generated randomly, and the public key is computed
+    /// as g^private_key mod p.
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use ruscrypt::asym::dh::DHParticipant;
+    /// 
+    /// let alice = DHParticipant::new();
+    /// assert!(alice.private_key > 0);
+    /// assert!(alice.public_key > 0);
+    /// assert!(alice.shared_secret.is_none());
+    /// ```
     pub fn new() -> Self {
         let mut rng = rand::rng();
         let private_key = rng.random_range(2..1000000); // Small range for educational purposes
@@ -33,11 +100,27 @@ impl DHParticipant {
         }
     }
     
-    /// Create a participant with a specific private key (for testing and controlled scenarios)
-    /// This function is essential for:
-    /// - Unit testing with predictable results
-    /// - Educational demonstrations with known values
-    /// - Debugging and verification scenarios
+    /// Creates a DH participant with a specific private key.
+    /// 
+    /// This function is useful for testing, demonstrations with known values,
+    /// and educational purposes where reproducible results are needed.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `private_key` - The private key to use (should be between 2 and prime-2)
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use ruscrypt::asym::dh::DHParticipant;
+    /// 
+    /// let alice = DHParticipant::with_private_key(12345);
+    /// assert_eq!(alice.private_key, 12345);
+    /// 
+    /// // Same private key always generates same public key
+    /// let alice2 = DHParticipant::with_private_key(12345);
+    /// assert_eq!(alice.public_key, alice2.public_key);
+    /// ```
     #[allow(dead_code)]
     pub fn with_private_key(private_key: u64) -> Self {
         let public_key = mod_exp(DH_GENERATOR, private_key, DH_PRIME);
@@ -51,7 +134,35 @@ impl DHParticipant {
         }
     }
     
-    /// Compute shared secret using other party's public key
+    /// Computes the shared secret using another participant's public key.
+    /// 
+    /// This function implements the core DH computation: shared_secret = other_public_key^my_private_key mod p.
+    /// Both participants will compute the same shared secret when given each other's public keys.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `other_public_key` - The other participant's public key
+    /// 
+    /// # Returns
+    /// 
+    /// Returns the computed shared secret.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an error if the other party's public key is invalid (>= prime).
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use ruscrypt::asym::dh::DHParticipant;
+    /// 
+    /// let mut alice = DHParticipant::with_private_key(6);
+    /// let bob = DHParticipant::with_private_key(15);
+    /// 
+    /// let shared_secret = alice.compute_shared_secret(bob.public_key).unwrap();
+    /// assert!(shared_secret > 0);
+    /// assert_eq!(alice.get_shared_secret(), Some(shared_secret));
+    /// ```
     pub fn compute_shared_secret(&mut self, other_public_key: u64) -> Result<u64> {
         if other_public_key >= self.prime {
             return Err(anyhow::anyhow!("Invalid public key: too large"));
@@ -63,22 +174,57 @@ impl DHParticipant {
         Ok(shared_secret)
     }
     
-    /// Get the shared secret (if computed)
-    /// This function is essential for:
-    /// - Retrieving computed shared secrets
-    /// - Verification in tests
-    /// - State checking in applications
+    /// Gets the computed shared secret, if available.
+    /// 
+    /// Returns `None` if no shared secret has been computed yet.
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use ruscrypt::asym::dh::DHParticipant;
+    /// 
+    /// let mut participant = DHParticipant::new();
+    /// assert_eq!(participant.get_shared_secret(), None);
+    /// 
+    /// // After computing shared secret...
+    /// let other = DHParticipant::new();
+    /// participant.compute_shared_secret(other.public_key).unwrap();
+    /// assert!(participant.get_shared_secret().is_some());
+    /// ```
     #[allow(dead_code)]
     pub fn get_shared_secret(&self) -> Option<u64> {
         self.shared_secret
     }
 }
 
-/// Main entry point for DH key exchange in CLI
-/// This function provides a unified interface for different DH modes:
-/// - "interactive": Full simulation with two participants
-/// - "demo": Mathematical concept demonstration  
-/// - "manual": Returns error directing to manual_key_exchange()
+/// Main entry point for Diffie-Hellman key exchange operations.
+/// 
+/// Provides different modes of operation for various use cases:
+/// - Interactive simulation for educational purposes
+/// - Manual key exchange for multi-terminal testing
+/// - Mathematical concept demonstration
+/// 
+/// # Arguments
+/// 
+/// * `mode` - The operation mode: "interactive", "manual", or "demo"
+/// 
+/// # Returns
+/// 
+/// Returns a descriptive message about the operation performed.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::dh;
+/// 
+/// // Run an interactive simulation
+/// let result = dh::key_exchange("interactive").unwrap();
+/// println!("{}", result);
+/// 
+/// // Demonstrate the mathematical concepts
+/// let demo = dh::key_exchange("demo").unwrap();
+/// println!("{}", demo);
+/// ```
 pub fn key_exchange(mode: &str) -> Result<String> {
     match mode.to_lowercase().as_str() {
         "interactive" => interactive_key_exchange(),
@@ -88,7 +234,23 @@ pub fn key_exchange(mode: &str) -> Result<String> {
     }
 }
 
-/// Interactive Diffie-Hellman key exchange simulation
+/// Runs an interactive Diffie-Hellman key exchange simulation.
+/// 
+/// This function simulates a complete key exchange between two parties
+/// (Alice and Bob) for educational purposes. It shows all the steps
+/// including key generation, exchange, and shared secret computation.
+/// 
+/// # Returns
+/// 
+/// Returns a success message with the computed shared secret.
+/// 
+/// # Examples
+/// 
+/// The function will output detailed information about:
+/// - Public parameters (prime and generator)
+/// - Each participant's keys
+/// - The key exchange process
+/// - Verification that both parties computed the same secret
 pub fn interactive_key_exchange() -> Result<String> {
     println!("\n🔑 Diffie-Hellman Key Exchange Simulation");
     println!("==========================================");
@@ -124,7 +286,25 @@ pub fn interactive_key_exchange() -> Result<String> {
     }
 }
 
-/// Start a manual key exchange session (Step 1 - Generate keys and show public key)
+/// Starts a manual key exchange session for multi-terminal testing.
+/// 
+/// This function generates DH parameters for one participant and provides
+/// instructions for completing the key exchange with another terminal.
+/// Useful for testing the protocol across different processes or machines.
+/// 
+/// # Returns
+/// 
+/// Returns session data including the participant's keys and instructions.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::dh;
+/// 
+/// let session = dh::start_manual_key_exchange().unwrap();
+/// println!("{}", session);
+/// // Follow the printed instructions to complete the exchange
+/// ```
 pub fn start_manual_key_exchange() -> Result<String> {
     println!("\n🔑 Diffie-Hellman Manual Key Exchange");
     println!("=====================================");
@@ -191,8 +371,30 @@ pub fn complete_manual_key_exchange(other_public_key: u64, my_private_key: u64) 
     Ok(format!("Shared secret: {}", shared_secret))
 }
 
-
-/// Demonstrate the mathematical concept
+/// Demonstrates the mathematical concepts behind Diffie-Hellman.
+/// 
+/// Uses small, easy-to-follow numbers to show how the algorithm works
+/// mathematically. Perfect for educational purposes and understanding
+/// the underlying mathematics.
+/// 
+/// # Returns
+/// 
+/// Returns a detailed explanation of the mathematical steps.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::dh;
+/// 
+/// let demo = dh::demonstrate_concept().unwrap();
+/// println!("{}", demo);
+/// ```
+/// 
+/// This function will show:
+/// - Small prime and generator values
+/// - Step-by-step calculations
+/// - How both parties arrive at the same shared secret
+/// - Security insights about the discrete logarithm problem
 pub fn demonstrate_concept() -> Result<String> {
     println!("\n📚 Diffie-Hellman Concept Demonstration");
     println!("=======================================");
@@ -253,7 +455,27 @@ pub fn demonstrate_concept() -> Result<String> {
     }
 }
 
-/// Fast modular exponentiation (a^b mod m)
+/// Fast modular exponentiation using the square-and-multiply algorithm.
+/// 
+/// Computes (base^exp) mod modulus efficiently, which is essential for
+/// Diffie-Hellman calculations with large numbers.
+/// 
+/// # Arguments
+/// 
+/// * `base` - The base number
+/// * `exp` - The exponent
+/// * `modulus` - The modulus
+/// 
+/// # Returns
+/// 
+/// Returns base^exp mod modulus.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// // This is an internal function
+/// // let result = mod_exp(2, 10, 1000); // 2^10 mod 1000 = 24
+/// ```
 fn mod_exp(base: u64, exp: u64, modulus: u64) -> u64 {
     if modulus == 1 {
         return 0;

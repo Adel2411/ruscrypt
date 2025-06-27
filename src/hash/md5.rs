@@ -1,6 +1,99 @@
+//! # MD5 Hash Function Implementation
+//! 
+//! This module provides a complete implementation of the MD5 (Message-Digest Algorithm 5)
+//! cryptographic hash function. MD5 was designed by Ronald Rivest in 1991 as a replacement
+//! for MD4, but is now considered cryptographically broken.
+//! 
+//! ⚠️ **Security Warning**: MD5 is **not secure** for cryptographic purposes due to
+//! collision vulnerabilities discovered in 2004. Use only for checksums, legacy
+//! compatibility, or educational purposes.
+//! 
+//! ## Algorithm Overview
+//! 
+//! - **Output Size**: 128 bits (16 bytes, 32 hex characters)
+//! - **Block Size**: 512 bits (64 bytes)
+//! - **Structure**: Merkle-Damgård construction with 64 rounds
+//! - **Operations**: Bitwise AND, OR, XOR, NOT, addition, left rotation
+//! 
+//! ## Security Status
+//! 
+//! MD5 suffers from several critical vulnerabilities:
+//! - **Collision Attacks**: Different inputs can produce the same hash
+//! - **Preimage Attacks**: Possible to find inputs for a given hash
+//! - **Length Extension**: Vulnerable to length extension attacks
+//! 
+//! ## Acceptable Uses
+//! 
+//! - File integrity checking (non-security critical)
+//! - Legacy system compatibility
+//! - Educational cryptography study
+//! - Checksums for error detection
+//! 
+//! ## Examples
+//! 
+//! ```rust
+//! use ruscrypt::hash::md5;
+//! 
+//! // Basic MD5 hashing
+//! let hash = md5::hash("Hello, World!").unwrap();
+//! println!("MD5: {}", hash); // Outputs 32 hex characters
+//! 
+//! // Empty string
+//! let empty_hash = md5::hash("").unwrap();
+//! assert_eq!(empty_hash, "d41d8cd98f00b204e9800998ecf8427e");
+//! ```
+
 use anyhow::Result;
 
-/// Computes MD5 hash of input text
+/// Computes the MD5 hash of the input text.
+/// 
+/// This function takes a string input, converts it to bytes, processes it through
+/// the MD5 algorithm, and returns the resulting hash as a hexadecimal string.
+/// 
+/// # Arguments
+/// 
+/// * `input` - The text to hash
+/// 
+/// # Returns
+/// 
+/// Returns a 32-character hexadecimal string representing the 128-bit MD5 hash.
+/// 
+/// # Algorithm Steps
+/// 
+/// 1. Convert input string to bytes
+/// 2. Apply MD5 algorithm to produce 16-byte hash
+/// 3. Convert each byte to 2-digit hexadecimal
+/// 4. Concatenate to form final hash string
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::hash::md5;
+/// 
+/// // Hash a simple message
+/// let hash = md5::hash("The quick brown fox").unwrap();
+/// println!("Hash: {}", hash);
+/// 
+/// // MD5 of empty string is always the same
+/// let empty = md5::hash("").unwrap();
+/// assert_eq!(empty, "d41d8cd98f00b204e9800998ecf8427e");
+/// 
+/// // Different inputs produce different hashes
+/// let hash1 = md5::hash("message1").unwrap();
+/// let hash2 = md5::hash("message2").unwrap();
+/// assert_ne!(hash1, hash2);
+/// ```
+/// 
+/// # Output Format
+/// 
+/// The returned string is always exactly 32 characters long, containing
+/// only lowercase hexadecimal digits (0-9, a-f).
+/// 
+/// # Errors
+/// 
+/// This function is currently infallible and always returns `Ok(hash)`.
+/// The `Result` return type is maintained for consistency with other hash
+/// functions and potential future error conditions.
 pub fn hash(input: &str) -> Result<String> {
     let bytes = input.as_bytes();
     let hash_bytes = md5_hash(bytes);
@@ -14,7 +107,51 @@ pub fn hash(input: &str) -> Result<String> {
     Ok(hex_string)
 }
 
-/// Core MD5 implementation
+/// Core MD5 implementation following RFC 1321 specification.
+/// 
+/// This function implements the complete MD5 algorithm including message
+/// padding, length appending, and the 64-round compression function.
+/// 
+/// # Arguments
+/// 
+/// * `input` - Raw bytes to hash
+/// 
+/// # Returns
+/// 
+/// Returns a 16-byte array containing the MD5 hash.
+/// 
+/// # Algorithm Details
+/// 
+/// ## Initialization
+/// - Four 32-bit words initialized to specific constants
+/// - These are the fractional parts of square roots of small integers
+/// 
+/// ## Preprocessing
+/// 1. **Padding**: Append '1' bit followed by '0' bits
+/// 2. **Length**: Append original message length as 64-bit little-endian
+/// 3. **Result**: Message length ≡ 0 (mod 512)
+/// 
+/// ## Processing
+/// - Process message in 512-bit (64-byte) chunks
+/// - Each chunk undergoes 64 rounds of operations
+/// - Four different auxiliary functions used across rounds
+/// 
+/// ## Constants
+/// - **K[i]**: 64 constants derived from sine function
+/// - **S[i]**: Shift amounts for left rotation operations
+/// 
+/// # Round Functions
+/// 
+/// - **F(B,C,D) = (B ∧ C) ∨ (¬B ∧ D)**: Rounds 0-15
+/// - **G(B,C,D) = (D ∧ B) ∨ (¬D ∧ C)**: Rounds 16-31  
+/// - **H(B,C,D) = B ⊕ C ⊕ D**: Rounds 32-47
+/// - **I(B,C,D) = C ⊕ (B ∨ ¬D)**: Rounds 48-63
+/// 
+/// # Security Note
+/// 
+/// This implementation is for educational purposes. The MD5 algorithm
+/// itself is cryptographically broken and should not be used for
+/// security-critical applications.
 fn md5_hash(input: &[u8]) -> [u8; 16] {
     // MD5 constants
     const K: [u32; 64] = [

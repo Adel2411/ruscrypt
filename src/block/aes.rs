@@ -1,7 +1,94 @@
+//! # AES (Advanced Encryption Standard) Implementation
+//! 
+//! This module provides a simplified educational implementation of AES with
+//! support for 128, 192, and 256-bit keys in ECB and CBC modes.
+//! 
+//! ✅ **Security Status**: AES is considered secure for modern use, though this
+//! implementation is simplified for educational purposes.
+//! 
+//! ## Supported Features
+//! 
+//! - **Key sizes**: 128, 192, 256 bits
+//! - **Modes**: ECB (Electronic Codebook), CBC (Cipher Block Chaining)
+//! - **Encoding**: Base64, Hexadecimal
+//! - **Padding**: PKCS#7 padding for block alignment
+//! 
+//! ## Security Considerations
+//! 
+//! - ECB mode is not recommended for production (reveals patterns)
+//! - CBC mode is more secure but uses a fixed IV (not recommended for production)
+//! - For production use, consider authenticated encryption modes like GCM
+//! 
+//! ## Examples
+//! 
+//! ```rust
+//! use ruscrypt::block::aes;
+//! 
+//! // AES-256 encryption in CBC mode
+//! let encrypted = aes::encrypt(
+//!     "Hello, World!", 
+//!     "mypassword", 
+//!     "256", 
+//!     "CBC", 
+//!     "base64"
+//! ).unwrap();
+//! 
+//! let decrypted = aes::decrypt(
+//!     &encrypted, 
+//!     "mypassword", 
+//!     "256", 
+//!     "CBC", 
+//!     "base64"
+//! ).unwrap();
+//! 
+//! assert_eq!(decrypted, "Hello, World!");
+//! ```
+
 use anyhow::Result;
 use crate::{hash::sha256, utils::{from_base64, from_hex, pad_data, remove_padding, to_base64, to_hex}};
 
-/// Encrypts data using simplified AES with specified key size, mode, and encoding
+/// Encrypts data using AES with specified parameters.
+/// 
+/// This function provides a high-level interface to AES encryption with
+/// automatic key derivation from a password using SHA-256.
+/// 
+/// # Arguments
+/// 
+/// * `data` - The plaintext to encrypt
+/// * `password` - Password for key derivation (any non-empty string)
+/// * `key_size` - AES key size: "128", "192", or "256" bits
+/// * `mode` - Encryption mode: "ECB" or "CBC"
+/// * `encoding` - Output encoding: "base64" or "hex"
+/// 
+/// # Returns
+/// 
+/// Returns the encrypted data in the specified encoding format.
+/// 
+/// # Errors
+/// 
+/// Returns an error if:
+/// - Password is empty
+/// - Invalid key size (must be 128, 192, or 256)
+/// - Unsupported mode (must be ECB or CBC)
+/// - Unsupported encoding (must be base64 or hex)
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::block::aes;
+/// 
+/// // AES-128 with ECB mode and Base64 output
+/// let encrypted = aes::encrypt("Secret", "pass", "128", "ECB", "base64").unwrap();
+/// 
+/// // AES-256 with CBC mode and hex output
+/// let encrypted = aes::encrypt("Secret", "pass", "256", "CBC", "hex").unwrap();
+/// ```
+/// 
+/// # Security Notes
+/// 
+/// - Key is derived from password using SHA-256
+/// - ECB mode should be avoided for sensitive data
+/// - CBC mode uses a fixed zero IV (not secure for production)
 pub fn encrypt(data: &str, password: &str, key_size: &str, mode: &str, encoding: &str) -> Result<String> {
     if password.is_empty() {
         return Err(anyhow::anyhow!("Password cannot be empty"));
@@ -33,7 +120,41 @@ pub fn encrypt(data: &str, password: &str, key_size: &str, mode: &str, encoding:
     }
 }
 
-/// Decrypts data using simplified AES with specified key size, mode, and encoding
+/// Decrypts AES-encrypted data with specified parameters.
+/// 
+/// Reverses the AES encryption process using the same parameters that
+/// were used for encryption.
+/// 
+/// # Arguments
+/// 
+/// * `data` - The encrypted data (in specified encoding)
+/// * `password` - Password used for encryption (must match exactly)
+/// * `key_size` - AES key size used: "128", "192", or "256" bits
+/// * `mode` - Encryption mode used: "ECB" or "CBC"
+/// * `encoding` - Input encoding: "base64" or "hex"
+/// 
+/// # Returns
+/// 
+/// Returns the decrypted plaintext as a UTF-8 string.
+/// 
+/// # Errors
+/// 
+/// Returns an error if:
+/// - Password is empty or incorrect
+/// - Invalid key size
+/// - Unsupported mode or encoding
+/// - Invalid input data for the specified encoding
+/// - Decrypted data is not valid UTF-8
+/// - Invalid padding in encrypted data
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::block::aes;
+/// 
+/// let encrypted = "..."; // Previously encrypted data
+/// let decrypted = aes::decrypt(encrypted, "pass", "256", "CBC", "base64").unwrap();
+/// ```
 pub fn decrypt(data: &str, password: &str, key_size: &str, mode: &str, encoding: &str) -> Result<String> {
     if password.is_empty() {
         return Err(anyhow::anyhow!("Password cannot be empty"));
@@ -68,7 +189,25 @@ pub fn decrypt(data: &str, password: &str, key_size: &str, mode: &str, encoding:
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in decrypted data: {}", e))
 }
 
-/// AES encryption in ECB mode
+/// Encrypts data using AES in Electronic Codebook (ECB) mode.
+/// 
+/// ECB mode encrypts each 16-byte block independently. This mode is simple
+/// but not recommended for sensitive data as it reveals patterns.
+/// 
+/// # Arguments
+/// 
+/// * `data` - Padded plaintext data (must be multiple of 16 bytes)
+/// * `key` - AES key bytes
+/// * `key_bits` - Key size in bits (128, 192, or 256)
+/// 
+/// # Returns
+/// 
+/// Returns the encrypted data as a vector of bytes.
+/// 
+/// # Security Warning
+/// 
+/// ⚠️ ECB mode is not semantically secure and should not be used for
+/// encrypting large amounts of data or data with patterns.
 fn encrypt_ecb(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
     let mut encrypted = Vec::new();
     
@@ -95,7 +234,25 @@ fn decrypt_ecb(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
     Ok(decrypted)
 }
 
-/// AES encryption in CBC mode
+/// Encrypts data using AES in Cipher Block Chaining (CBC) mode.
+/// 
+/// CBC mode XORs each plaintext block with the previous ciphertext block
+/// before encryption, providing better security than ECB mode.
+/// 
+/// # Arguments
+/// 
+/// * `data` - Padded plaintext data (must be multiple of 16 bytes)
+/// * `key` - AES key bytes  
+/// * `key_bits` - Key size in bits (128, 192, or 256)
+/// 
+/// # Returns
+/// 
+/// Returns the encrypted data as a vector of bytes.
+/// 
+/// # Implementation Note
+/// 
+/// This implementation uses a fixed zero IV for simplicity. In production,
+/// use a random IV for each encryption operation.
 fn encrypt_cbc(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
     let mut encrypted = Vec::new();
     let mut previous_block = [0u8; 16]; // IV (Initialization Vector) - all zeros for simplicity
@@ -142,7 +299,25 @@ fn decrypt_cbc(data: &[u8], key: &[u8], key_bits: u32) -> Result<Vec<u8>> {
     Ok(decrypted)
 }
 
-/// Derives key from password using our custom SHA-256 with specified key size
+/// Derives an AES key from a password using SHA-256.
+/// 
+/// This function uses SHA-256 to convert a password into an AES key of the
+/// specified size. For keys larger than 256 bits, it generates additional
+/// hash rounds.
+/// 
+/// # Arguments
+/// 
+/// * `password` - The password string
+/// * `key_bits` - Desired key size in bits (128, 192, or 256)
+/// 
+/// # Returns
+/// 
+/// Returns the derived key as a vector of bytes.
+/// 
+/// # Security Note
+/// 
+/// This is a simple key derivation function. For production use, consider
+/// using proper key derivation functions like PBKDF2 or Argon2.
 fn derive_key(password: &str, key_bits: u32) -> Result<Vec<u8>> {
     let hash_hex = sha256::hash(password)?;
     let key_bytes = key_bits / 8;

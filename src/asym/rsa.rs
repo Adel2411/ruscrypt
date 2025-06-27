@@ -1,37 +1,135 @@
+//! # RSA Asymmetric Encryption Implementation
+//! 
+//! This module provides an educational implementation of the RSA public-key
+//! cryptosystem for learning purposes.
+//! 
+//! ⚠️ **Security Warning**: This implementation uses small key sizes and
+//! simplified algorithms. It should **NOT** be used for production security.
+//! For real applications, use established RSA libraries with proper padding
+//! schemes and key sizes of at least 2048 bits.
+//! 
+//! ## Algorithm Overview
+//! 
+//! RSA encryption relies on the mathematical difficulty of factoring large
+//! composite numbers. The algorithm involves:
+//! 
+//! 1. **Key Generation**: Create public/private key pairs
+//! 2. **Encryption**: Use public key to encrypt data
+//! 3. **Decryption**: Use private key to decrypt data
+//! 
+//! ## Examples
+//! 
+//! ```rust
+//! use ruscrypt::asym::rsa;
+//! 
+//! // CLI-style encryption (returns encrypted data and private key)
+//! let (encrypted, private_key) = rsa::encrypt("Hello", "512", "base64").unwrap();
+//! let decrypted = rsa::decrypt(&encrypted, &private_key, "base64").unwrap();
+//! assert_eq!(decrypted, "Hello");
+//! 
+//! // Lower-level key generation and encryption
+//! let key_pair = rsa::generate_key_pair(512).unwrap();
+//! let encrypted_data = rsa::rsa_encrypt(b"Hello", &key_pair.public_key).unwrap();
+//! let decrypted_bytes = rsa::rsa_decrypt(&encrypted_data.ciphertext, &key_pair.private_key).unwrap();
+//! ```
+
 use anyhow::Result;
 use rand::Rng;
 use crate::utils::{to_base64, from_base64, to_hex, from_hex};
 
-/// RSA Key Pair
+/// RSA key pair containing both public and private keys.
+/// 
+/// In RSA, the public key can be shared openly while the private key
+/// must be kept secret by the owner.
 #[derive(Debug, Clone)]
 pub struct RSAKeyPair {
+    /// The public key component (for encryption and signature verification)
     pub public_key: RSAPublicKey,
+    /// The private key component (for decryption and signing)
     pub private_key: RSAPrivateKey,
 }
 
-/// RSA Public Key
+/// RSA public key used for encryption and signature verification.
+/// 
+/// The public key consists of the modulus `n` and public exponent `e`.
+/// This key can be shared openly.
 #[derive(Debug, Clone)]
 pub struct RSAPublicKey {
-    pub n: u64,  // modulus
-    pub e: u64,  // public exponent
+    /// The modulus (n = p × q where p and q are large primes)
+    pub n: u64,
+    /// The public exponent (commonly 65537 in practice)
+    pub e: u64,
 }
 
-/// RSA Private Key
+/// RSA private key used for decryption and signing.
+/// 
+/// The private key consists of the same modulus `n` and the private exponent `d`.
+/// This key must be kept secret.
 #[derive(Debug, Clone)]
 pub struct RSAPrivateKey {
-    pub n: u64,  // modulus (same as public key)
-    pub d: u64,  // private exponent
+    /// The modulus (same as in the public key)
+    pub n: u64,
+    /// The private exponent (d ≡ e⁻¹ mod φ(n))
+    pub d: u64,
 }
 
-/// Represents an encrypted RSA message
+/// Container for RSA-encrypted data along with metadata.
+/// 
+/// RSA encryption may split large messages into multiple blocks,
+/// so the ciphertext is stored as a vector of encrypted integers.
 #[derive(Debug)]
 pub struct RSAEncryptedData {
+    /// The encrypted data blocks
     pub ciphertext: Vec<u64>,
+    /// The public key used for encryption (for reference)
     #[allow(dead_code)]
     pub public_key: RSAPublicKey,
 }
 
-/// Main RSA encryption function for CLI
+/// High-level RSA encryption function for CLI use.
+/// 
+/// This function generates a new RSA key pair, encrypts the data with the
+/// public key, and returns both the encrypted data and the private key
+/// (formatted as a string for storage).
+/// 
+/// # Arguments
+/// 
+/// * `data` - The plaintext string to encrypt
+/// * `key_size` - Key size in bits: "512", "1024", or "2048"
+/// * `encoding` - Output encoding: "base64" or "hex"
+/// 
+/// # Returns
+/// 
+/// Returns a tuple containing:
+/// - Encrypted data as an encoded string
+/// - Private key formatted as "n:d" for later decryption
+/// 
+/// # Errors
+/// 
+/// Returns an error if:
+/// - Invalid key size specified
+/// - Unsupported encoding format
+/// - Key generation fails (rare, but can happen with small primes)
+/// - Message is too large for the key size
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::rsa;
+/// 
+/// let (encrypted, private_key) = rsa::encrypt("Secret message", "1024", "base64").unwrap();
+/// println!("Encrypted: {}", encrypted);
+/// println!("Private key (save this!): {}", private_key);
+/// 
+/// // Later, decrypt with the private key
+/// let decrypted = rsa::decrypt(&encrypted, &private_key, "base64").unwrap();
+/// assert_eq!(decrypted, "Secret message");
+/// ```
+/// 
+/// # Security Note
+/// 
+/// ⚠️ The generated keys use small sizes suitable only for educational purposes.
+/// Real applications should use at least 2048-bit keys with proper padding.
 pub fn encrypt(data: &str, key_size: &str, encoding: &str) -> Result<(String, String)> {
     let key_bits: u32 = key_size.parse()
         .map_err(|_| anyhow::anyhow!("Invalid key size: {}", key_size))?;
@@ -71,7 +169,38 @@ pub fn encrypt(data: &str, key_size: &str, encoding: &str) -> Result<(String, St
     Ok((encrypted_string, private_key_string))
 }
 
-/// Main RSA decryption function for CLI
+/// High-level RSA decryption function for CLI use.
+/// 
+/// Decrypts data that was encrypted with the corresponding public key,
+/// using a private key in string format.
+/// 
+/// # Arguments
+/// 
+/// * `data` - The encrypted data (in specified encoding)
+/// * `private_key_str` - Private key in "n:d" format
+/// * `encoding` - Input encoding: "base64" or "hex"
+/// 
+/// # Returns
+/// 
+/// Returns the decrypted plaintext as a UTF-8 string.
+/// 
+/// # Errors
+/// 
+/// Returns an error if:
+/// - Invalid private key format
+/// - Unsupported encoding format
+/// - Invalid encrypted data for the specified encoding
+/// - Decryption produces invalid UTF-8
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::rsa;
+/// 
+/// let encrypted_data = "..."; // Base64 encrypted data
+/// let private_key = "12345:6789"; // n:d format
+/// let decrypted = rsa::decrypt(encrypted_data, private_key, "base64").unwrap();
+/// ```
 pub fn decrypt(data: &str, private_key_str: &str, encoding: &str) -> Result<String> {
     let private_key = parse_private_key(private_key_str)?;
     
@@ -109,7 +238,45 @@ pub fn decrypt(data: &str, private_key_str: &str, encoding: &str) -> Result<Stri
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in decrypted data: {}", e))
 }
 
-/// Generate RSA key pair
+/// Generates an RSA key pair with the specified key size.
+/// 
+/// This function implements the basic RSA key generation algorithm:
+/// 1. Generate two distinct prime numbers p and q
+/// 2. Compute n = p × q (the modulus)
+/// 3. Compute φ(n) = (p-1)(q-1) (Euler's totient function)
+/// 4. Choose e such that gcd(e, φ(n)) = 1
+/// 5. Compute d ≡ e⁻¹ mod φ(n)
+/// 
+/// # Arguments
+/// 
+/// * `key_size` - Size of the key in bits (512, 1024, or 2048)
+/// 
+/// # Returns
+/// 
+/// Returns an `RSAKeyPair` containing both public and private keys.
+/// 
+/// # Errors
+/// 
+/// Returns an error if:
+/// - Unsupported key size
+/// - Prime generation fails
+/// - Key computation encounters mathematical errors
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::rsa;
+/// 
+/// let key_pair = rsa::generate_key_pair(1024).unwrap();
+/// println!("Public key: n={}, e={}", key_pair.public_key.n, key_pair.public_key.e);
+/// println!("Private key: n={}, d={}", key_pair.private_key.n, key_pair.private_key.d);
+/// ```
+/// 
+/// # Implementation Details
+/// 
+/// - Uses simplified prime generation suitable for educational purposes
+/// - Key sizes are smaller than production recommendations
+/// - No side-channel attack protections
 pub fn generate_key_pair(key_size: u32) -> Result<RSAKeyPair> {
     // For educational purposes, we'll use smaller primes
     // In production, you'd use much larger primes
@@ -142,7 +309,39 @@ pub fn generate_key_pair(key_size: u32) -> Result<RSAKeyPair> {
     Ok(RSAKeyPair { public_key, private_key })
 }
 
-/// RSA encryption
+/// Encrypts binary data using RSA public key encryption.
+/// 
+/// This function performs "textbook RSA" encryption without padding.
+/// Large messages are split into blocks that fit within the key size.
+/// 
+/// # Arguments
+/// 
+/// * `plaintext` - Raw bytes to encrypt
+/// * `public_key` - RSA public key for encryption
+/// 
+/// # Returns
+/// 
+/// Returns `RSAEncryptedData` containing the encrypted blocks.
+/// 
+/// # Errors
+/// 
+/// Returns an error if any message block is larger than the modulus.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::rsa;
+/// 
+/// let key_pair = rsa::generate_key_pair(512).unwrap();
+/// let encrypted = rsa::rsa_encrypt(b"Hello", &key_pair.public_key).unwrap();
+/// let decrypted = rsa::rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+/// assert_eq!(decrypted, b"Hello");
+/// ```
+/// 
+/// # Security Warning
+/// 
+/// ⚠️ This implements textbook RSA without padding, which is not semantically
+/// secure. Production systems should use OAEP or PKCS#1 v1.5 padding.
 pub fn rsa_encrypt(plaintext: &[u8], public_key: &RSAPublicKey) -> Result<RSAEncryptedData> {
     let mut ciphertext = Vec::new();
     
@@ -171,7 +370,30 @@ pub fn rsa_encrypt(plaintext: &[u8], public_key: &RSAPublicKey) -> Result<RSAEnc
     })
 }
 
-/// RSA decryption
+/// Decrypts RSA-encrypted data using the private key.
+/// 
+/// Reverses the RSA encryption process by applying the private key
+/// to each encrypted block and reconstructing the original message.
+/// 
+/// # Arguments
+/// 
+/// * `ciphertext` - Vector of encrypted integer blocks
+/// * `private_key` - RSA private key for decryption
+/// 
+/// # Returns
+/// 
+/// Returns the decrypted data as a vector of bytes.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::asym::rsa;
+/// 
+/// let key_pair = rsa::generate_key_pair(512).unwrap();
+/// let encrypted = rsa::rsa_encrypt(b"Test", &key_pair.public_key).unwrap();
+/// let decrypted = rsa::rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+/// assert_eq!(decrypted, b"Test");
+/// ```
 pub fn rsa_decrypt(ciphertext: &[u64], private_key: &RSAPrivateKey) -> Result<Vec<u8>> {
     let mut plaintext = Vec::new();
     let block_size = calculate_block_size(private_key.n);
@@ -213,7 +435,7 @@ pub fn rsa_decrypt(ciphertext: &[u64], private_key: &RSAPrivateKey) -> Result<Ve
     Ok(plaintext)
 }
 
-/// Parse private key from string format "n:d"
+/// Parses a private key from the string format "n:d".
 fn parse_private_key(key_str: &str) -> Result<RSAPrivateKey> {
     let parts: Vec<&str> = key_str.split(':').collect();
     if parts.len() != 2 {
@@ -228,7 +450,7 @@ fn parse_private_key(key_str: &str) -> Result<RSAPrivateKey> {
     Ok(RSAPrivateKey { n, d })
 }
 
-/// Calculate appropriate block size for RSA modulus
+/// Calculates the appropriate block size for RSA operations based on the modulus.
 fn calculate_block_size(n: u64) -> usize {
     // Number of bytes that can fit in modulus
     let bits = 64 - n.leading_zeros();
@@ -242,7 +464,9 @@ fn calculate_block_size(n: u64) -> usize {
     }
 }
 
-/// Generate a prime number (simplified for educational purposes)
+/// Generates a prime number using a simple trial division method.
+/// 
+/// ⚠️ This is a simplified implementation for educational purposes only.
 fn generate_prime(bit_size: u32) -> Result<u64> {
     let mut rng = rand::rng();
     let min = 1u64 << (bit_size - 1);

@@ -102,19 +102,46 @@ pub use block::*;
 pub use asym::*;
 
 /// Library version information
+/// 
+/// This constant contains the version string extracted from Cargo.toml
+/// at compile time, ensuring version consistency between the library
+/// and its metadata.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Get library version
+/// Get the current library version
+/// 
+/// Returns the version string for the RusCrypt library. This can be used
+/// by applications to display version information or ensure compatibility.
+/// 
+/// # Returns
+/// 
+/// Returns a static string slice containing the semantic version number.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt;
+/// 
+/// println!("RusCrypt version: {}", ruscrypt::version());
+/// ```
 pub fn version() -> &'static str {
     VERSION
 }
 
 /// Quick example demonstrating basic library usage
 /// 
+/// This function provides a simple demonstration of core library functionality
+/// including classical ciphers and modern hash functions. It exists primarily
+/// to ensure documentation examples compile correctly.
+/// 
+/// # Examples
+/// 
+/// The following example shows basic usage patterns:
+/// 
 /// ```rust
 /// use ruscrypt::{classical::caesar, hash::sha256};
 /// 
-/// // Classical cipher
+/// // Classical cipher encryption/decryption
 /// let encrypted = caesar::encrypt("Hello", 3).unwrap();
 /// let decrypted = caesar::decrypt(&encrypted, 3).unwrap();
 /// assert_eq!(decrypted, "Hello");
@@ -123,6 +150,11 @@ pub fn version() -> &'static str {
 /// let hash = sha256::hash("test").unwrap();
 /// assert_eq!(hash.len(), 64); // SHA-256 produces 64 hex characters
 /// ```
+/// 
+/// # Note
+/// 
+/// This function exists to validate documentation examples and does not
+/// perform any actual operations when called.
 pub fn quick_example() {
     // This function exists to ensure the example in docs compiles
 }
