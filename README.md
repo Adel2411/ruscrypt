@@ -23,6 +23,7 @@
 - [🎯 Overview](#-overview)
 - [✨ Features](#-features)
 - [📦 Installation](#-installation)
+- [📸 Screenshot](#-screenshot)
 - [🚀 Quick Start](#-quick-start)
 - [📖 Documentation](#-documentation)
 - [💡 Examples](#-examples)
@@ -30,6 +31,16 @@
 - [🔒 Security](#-security)
 - [🤝 Contributing](#-contributing)
 - [📄 License](#-license)
+
+---
+
+## 📸 Screenshot
+
+Below is a screenshot of the interactive usage of `ruscrypt`:
+
+![ruscrypt usage screenshot](./assets/examples.png)
+
+*Example: Interactive help and encryption prompt.*
 
 ---
 
@@ -174,8 +185,10 @@ cargo build --release
 ### Command Format
 
 ```bash
-# Get help information
+# Show help information (any of these commands):
+ruscrypt
 ruscrypt --help
+ruscrypt <encrypt|decrypt|hash|exchange> --help
 
 # Check version
 ruscrypt --version
