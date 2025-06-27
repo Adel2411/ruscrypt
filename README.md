@@ -12,7 +12,7 @@
 
 **Modern cryptographic operations made simple and blazingly fast**
 
-[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [💡 Examples](#-examples) • [🤝 Contributing](#-contributing)
+[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [💡 Examples](#-examples) • [🤝 Contributing](#-contributing) • [📚 API Docs](https://docs.rs/ruscrypt/0.1.0/ruscrypt/)
 
 </div>
 
@@ -131,7 +131,27 @@ ruscrypt/
 ### Prerequisites
 
 - **Rust**: 1.70.0 or higher
-- **Git**: For cloning the repository
+
+### Install from crates.io (Recommended)
+
+```bash
+# 📥 Install the CLI tool globally
+cargo install ruscrypt
+
+# 🎯 Binary will be available in your PATH
+ruscrypt --help
+```
+
+### Use as a Library
+
+```bash
+# 📚 Add to your Cargo.toml dependencies
+cargo add ruscrypt
+
+# Or manually add to Cargo.toml:
+# [dependencies]
+# ruscrypt = "0.1.0"
+```
 
 ### Build from Source
 
@@ -154,6 +174,12 @@ cargo build --release
 ### Command Format
 
 ```bash
+# Get help information
+ruscrypt --help
+
+# Check version
+ruscrypt --version
+
 # For encryption and decryption
 ruscrypt <encrypt|decrypt> --<algorithm>
 
@@ -548,15 +574,20 @@ Select Diffie-Hellman operation: Interactive Simulation (Alice & Bob)
 # 🧪 Run all tests
 cargo test
 
-# 📊 Run with detailed output
-cargo test -- --nocapture
+# ⚡ Run specific test files
+cargo test classical      # Test classical ciphers
+cargo stream        # Test stream ciphers  
+cargo block         # Test block ciphers
+cargo hash          # Test hash functions
+cargo asym          # Test asymmetric crypto
 
-# ⚡ Run specific algorithm tests
-cargo test classical::tests
-cargo test stream::tests
-cargo test block::tests
-cargo test hash::tests
-cargo test asym::tests
+# 🎯 Run specific algorithm tests
+cargo caesar_tests        # Test Caesar cipher
+cargo vigenere_tests      # Test Vigenère cipher
+cargo aes_tests          # Test AES encryption
+cargo rsa_tests           # Test RSA encryption
+cargo sha256_tests        # Test SHA-256 hashing
+cargo dh_tests            # Test Diffie-Hellman
 ```
 
 ### Manual Testing
@@ -564,6 +595,9 @@ cargo test asym::tests
 Test each algorithm interactively:
 
 ```bash
+# Check available commands
+ruscrypt --help
+
 # Test classical ciphers
 ruscrypt encrypt --caesar
 ruscrypt encrypt --vigenere
