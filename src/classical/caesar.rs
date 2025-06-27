@@ -52,7 +52,7 @@ use crate::utils::shift_char;
 /// assert_eq!(result2, "DEF");
 /// ```
 pub fn encrypt(text: &str, shift: u8) -> Result<String> {
-    let shift = shift % 26; // Ensure shift is within valid range
+    let shift = shift % 26;
     let result = text
         .chars()
         .map(|c| shift_char(c, shift))

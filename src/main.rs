@@ -1,5 +1,6 @@
 use anyhow::Result;
 use colored::*;
+use std::env;
 
 mod cli;
 mod dispatcher;
@@ -12,10 +13,17 @@ mod block;
 mod asym;
 
 fn main() -> Result<()> {
-    print_banner();
+    let args: Vec<String> = env::args().collect();
     
-    let args = cli::parse_args();
-    dispatcher::dispatch_command(args)?;
+    let should_print_banner = args.len() == 1 ||
+        args.iter().any(|arg: &String| arg == "--help" || arg == "-h" || arg == "--version" || arg == "-V");
+    
+    if should_print_banner {
+        print_banner();
+    }
+    
+    let parsed_args = cli::parse_args();
+    dispatcher::dispatch_command(parsed_args)?;
     
     Ok(())
 }
@@ -33,4 +41,5 @@ fn print_banner() {
     ".yellow());
     
     println!("{}", "⚡ Lightning-fast cryptography toolkit ⚡".yellow());
+    println!();
 }

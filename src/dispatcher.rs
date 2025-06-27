@@ -59,31 +59,6 @@ use crate::asym::{dh, rsa};
 /// - Cryptographic operation failures
 /// - I/O errors during interactive prompts
 pub fn dispatch_command(args: Args) -> Result<()> {
-    // Print the parsed arguments
-    println!("\n{}", "📋 Parsed Command Arguments:".cyan());
-    println!("{}", "═════════════════════════════".cyan());
-    
-    match &args.command {
-        Commands::Encrypt { algorithm } => {
-            println!("{}: {}", "Command".yellow().bold(), "Encrypt".green());
-            print_algorithm_details(algorithm);
-        },
-        Commands::Decrypt { algorithm } => {
-            println!("{}: {}", "Command".yellow().bold(), "Decrypt".blue());
-            print_algorithm_details(algorithm);
-        },
-        Commands::Hash { algorithm } => {
-            println!("{}: {}", "Command".yellow().bold(), "Hash".magenta());
-            print_hash_algorithm_details(algorithm);
-        },
-        Commands::Exchange { protocol } => {
-            println!("{}: {}", "Command".yellow().bold(), "Key Exchange".purple());
-            print_keyexchange_protocol_details(protocol);
-        },
-    }
-    
-    println!("{}\n", "═════════════════════════════".cyan());
-
     // Original command dispatch logic
     match args.command {
         Commands::Encrypt { algorithm } => {
@@ -109,88 +84,6 @@ pub fn dispatch_command(args: Args) -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Display detailed information about the selected encryption algorithm
-/// 
-/// Formats and prints algorithm-specific information including the algorithm
-/// name and which specific variant was selected by the user.
-/// 
-/// # Arguments
-/// 
-/// * `algorithm` - Reference to the selected encryption algorithm configuration
-/// 
-/// # Output
-/// 
-/// Prints formatted information to stdout including:
-/// - Algorithm name
-/// - Specific variant details
-/// - Any relevant security warnings
-fn print_algorithm_details(algorithm: &EncryptionAlgorithm) {
-    let algo_name = crate::cli::get_algorithm_name(algorithm);
-    println!("{}: {}", "Algorithm".yellow().bold(), algo_name.white());
-    
-    // Print algorithm-specific flags
-    println!("{}: ", "Details".yellow().bold());
-    if algorithm.caesar { println!("  - Caesar cipher selected"); }
-    if algorithm.vigenere { println!("  - Vigenère cipher selected"); }
-    if algorithm.playfair { println!("  - Playfair cipher selected"); }
-    if algorithm.railfence { println!("  - Rail Fence cipher selected"); }
-    if algorithm.rc4 { println!("  - RC4 stream cipher selected"); }
-    if algorithm.aes { println!("  - AES block cipher selected"); }
-    if algorithm.des { println!("  - DES block cipher selected"); }
-    if algorithm.rsa { println!("  - RSA asymmetric encryption selected"); }
-}
-
-/// Display detailed information about the selected hash algorithm
-/// 
-/// Formats and prints hash algorithm-specific information including the
-/// algorithm name and security considerations.
-/// 
-/// # Arguments
-/// 
-/// * `algorithm` - Reference to the selected hash algorithm configuration
-/// 
-/// # Output
-/// 
-/// Prints formatted information to stdout including:
-/// - Hash algorithm name
-/// - Output size information
-/// - Security status (secure/deprecated)
-fn print_hash_algorithm_details(algorithm: &HashAlgorithm) {
-    let algo_name = crate::cli::get_hash_algorithm_name(algorithm);
-    println!("{}: {}", "Algorithm".yellow().bold(), algo_name.white());
-    
-    // Print algorithm-specific flags
-    println!("{}: ", "Details".yellow().bold());
-    if algorithm.md5 { println!("  - MD5 hash function selected"); }
-    if algorithm.sha1 { println!("  - SHA-1 hash function selected"); }
-    if algorithm.sha256 { println!("  - SHA-256 hash function selected"); }
-}
-
-/// Display detailed information about the selected key exchange protocol
-/// 
-/// Formats and prints protocol-specific information including the protocol
-/// name and implementation status.
-/// 
-/// # Arguments
-/// 
-/// * `protocol` - Reference to the selected key exchange protocol configuration
-/// 
-/// # Output
-/// 
-/// Prints formatted information to stdout including:
-/// - Protocol name
-/// - Implementation status
-/// - Usage recommendations
-fn print_keyexchange_protocol_details(protocol: &ExchangeProtocol) {
-    let protocol_name = crate::cli::get_keyexchange_protocol_name(protocol);
-    println!("{}: {}", "Protocol".yellow().bold(), protocol_name.white());
-    
-    // Print protocol-specific flags
-    println!("{}: ", "Details".yellow().bold());
-    if protocol.dh { println!("  - Diffie-Hellman key exchange protocol selected"); }
-    if protocol.ecdh { println!("  - ECDH key exchange protocol selected (not implemented)"); }
 }
 
 /// Handle encryption operations for all supported algorithms
