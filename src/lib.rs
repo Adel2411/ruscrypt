@@ -9,13 +9,14 @@ pub mod cli;
 pub mod dispatcher;
 pub mod interactive;
 pub mod utils;
+
 pub mod classical;
-pub mod hash;
 pub mod stream;
 pub mod block;
+pub mod asym;  // Add asymmetric module
+pub mod hash;
 
-#[cfg(test)]
-mod tests;
+pub mod tests;
 
 // Re-export commonly used items for convenience
 pub use classical::*;

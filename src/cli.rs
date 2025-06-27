@@ -27,6 +27,11 @@ pub enum Commands {
         #[command(flatten)]
         algorithm: HashAlgorithm,
     },
+    /// Key exchange protocols and demonstrations
+    Exchange {
+        #[command(flatten)]
+        protocol: ExchangeProtocol,
+    },
 }
 
 #[derive(ClapArgs, Debug)]
@@ -63,10 +68,6 @@ pub struct EncryptionAlgorithm {
     /// RSA asymmetric encryption
     #[arg(long)]
     pub rsa: bool,
-
-    /// Diffie-Hellman key exchange
-    #[arg(long)]
-    pub dh: bool,
 }
 
 #[derive(ClapArgs, Debug)]
@@ -83,6 +84,18 @@ pub struct HashAlgorithm {
     /// SHA-256 hash function
     #[arg(long)]
     pub sha256: bool,
+}
+
+#[derive(ClapArgs, Debug)]
+#[group(required = true, multiple = false)]
+pub struct ExchangeProtocol {
+    /// Diffie-Hellman key exchange
+    #[arg(long)]
+    pub dh: bool,
+
+    /// ECDH (Elliptic Curve Diffie-Hellman) - future implementation
+    #[arg(long)]
+    pub ecdh: bool,
 }
 
 pub fn parse_args() -> Args {
@@ -106,8 +119,6 @@ pub fn get_algorithm_name(algo: &EncryptionAlgorithm) -> &'static str {
         "DES"
     } else if algo.rsa {
         "RSA"
-    } else if algo.dh {
-        "Diffie-Hellman"
     } else {
         "Unknown"
     }
@@ -120,6 +131,16 @@ pub fn get_hash_algorithm_name(algo: &HashAlgorithm) -> &'static str {
         "SHA-1"
     } else if algo.sha256 {
         "SHA-256"
+    } else {
+        "Unknown"
+    }
+}
+
+pub fn get_keyexchange_protocol_name(protocol: &ExchangeProtocol) -> &'static str {
+    if protocol.dh {
+        "Diffie-Hellman"
+    } else if protocol.ecdh {
+        "ECDH (Not implemented)"
     } else {
         "Unknown"
     }

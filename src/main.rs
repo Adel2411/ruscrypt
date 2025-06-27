@@ -9,6 +9,7 @@ mod classical;
 mod hash;
 mod stream;
 mod block;
+mod asym;
 
 #[cfg(test)]
 mod tests;

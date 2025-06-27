@@ -1,12 +1,13 @@
 use anyhow::Result;
 use colored::*;
 
-use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm};
+use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm, ExchangeProtocol};
 use crate::classical::{caesar, rail_fence, vigenere, playfair};
 use crate::stream::rc4;
 use crate::hash::{md5, sha1, sha256};
 use crate::interactive;
 use crate::block::{des, aes};
+use crate::asym::{dh};
 
 pub fn dispatch_command(args: Args) -> Result<()> {
     // Print the parsed arguments
@@ -25,6 +26,10 @@ pub fn dispatch_command(args: Args) -> Result<()> {
         Commands::Hash { algorithm } => {
             println!("{}: {}", "Command".yellow().bold(), "Hash".magenta());
             print_hash_algorithm_details(algorithm);
+        },
+        Commands::Exchange { protocol } => {
+            println!("{}: {}", "Command".yellow().bold(), "Key Exchange".purple());
+            print_keyexchange_protocol_details(protocol);
         },
     }
     
@@ -47,6 +52,11 @@ pub fn dispatch_command(args: Args) -> Result<()> {
             println!("{} {}", "🔢 Hashing with".magenta(), algo_name.yellow().bold());
             handle_hashing(algorithm)?;
         },
+        Commands::Exchange { protocol } => {
+            let protocol_name = crate::cli::get_keyexchange_protocol_name(&protocol);
+            println!("{} {}", "🔑 Key Exchange with".purple(), protocol_name.yellow().bold());
+            handle_key_exchange(protocol)?;
+        },
     }
 
     Ok(())
@@ -66,7 +76,6 @@ fn print_algorithm_details(algorithm: &EncryptionAlgorithm) {
     if algorithm.aes { println!("  - AES block cipher selected"); }
     if algorithm.des { println!("  - DES block cipher selected"); }
     if algorithm.rsa { println!("  - RSA asymmetric encryption selected"); }
-    if algorithm.dh { println!("  - Diffie-Hellman key exchange selected"); }
 }
 
 fn print_hash_algorithm_details(algorithm: &HashAlgorithm) {
@@ -78,6 +87,16 @@ fn print_hash_algorithm_details(algorithm: &HashAlgorithm) {
     if algorithm.md5 { println!("  - MD5 hash function selected"); }
     if algorithm.sha1 { println!("  - SHA-1 hash function selected"); }
     if algorithm.sha256 { println!("  - SHA-256 hash function selected"); }
+}
+
+fn print_keyexchange_protocol_details(protocol: &ExchangeProtocol) {
+    let protocol_name = crate::cli::get_keyexchange_protocol_name(protocol);
+    println!("{}: {}", "Protocol".yellow().bold(), protocol_name.white());
+    
+    // Print protocol-specific flags
+    println!("{}: ", "Details".yellow().bold());
+    if protocol.dh { println!("  - Diffie-Hellman key exchange protocol selected"); }
+    if protocol.ecdh { println!("  - ECDH key exchange protocol selected (not implemented)"); }
 }
 
 fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
@@ -147,14 +166,7 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             format!("Encrypted text (DES, {}, {}): {}", mode, encoding, encrypted)
         },
         _ if algorithm.rsa => {
-            let key_size = interactive::prompt_for_choices(
-                "Select key size", 
-                &["1024", "2048", "4096"]
-            )?;
-            format!("RSA encryption with {} bit key will be implemented soon for input: {}", key_size, input)
-        },
-        _ if algorithm.dh => {
-            format!("Diffie-Hellman key exchange will be implemented soon for input: {}", input)
+            format!("RSA encryption is not yet implemented. Coming soon!")
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -230,11 +242,7 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.rsa => {
-            let private_key = interactive::prompt_for_input("Enter or paste private key")?;
-            format!("RSA decryption will be implemented soon with private key {} for input: {}", private_key, input)
-        },
-        _ if algorithm.dh => {
-            format!("Diffie-Hellman key import will be implemented soon for input: {}", input)
+            format!("RSA decryption is not yet implemented. Coming soon!")
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -263,5 +271,53 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
     };
 
     println!("\n{} {}", "Result:".blue().bold(), result.white());
+    Ok(())
+}
+
+fn handle_key_exchange(protocol: ExchangeProtocol) -> Result<()> {
+    let result = match true {
+        _ if protocol.dh => {
+            let choice = interactive::prompt_for_choices(
+                "Select Diffie-Hellman operation",
+                &[
+                    "Interactive Simulation (Alice & Bob)", 
+                    "Manual Exchange - Start Session", 
+                    "Manual Exchange - Complete with Other's Key",
+                    "Mathematical Concept Demo"
+                ]
+            )?;
+            
+            match choice.as_str() {
+                "Interactive Simulation (Alice & Bob)" => {
+                    dh::key_exchange("interactive")?
+                },
+                "Manual Exchange - Start Session" => {
+                    println!("\n🚀 Starting manual key exchange session...");
+                    dh::key_exchange("manual")?
+                },
+                "Manual Exchange - Complete with Other's Key" => {
+                    let other_public_key = interactive::prompt_for_input("Enter other party's public key")?
+                        .parse::<u64>()
+                        .map_err(|_| anyhow::anyhow!("Invalid public key format. Must be a number."))?;
+                    
+                    let my_private_key = interactive::prompt_for_input("Enter your private key")?
+                        .parse::<u64>()
+                        .map_err(|_| anyhow::anyhow!("Invalid private key format. Must be a number."))?;
+                    
+                    dh::complete_manual_key_exchange(other_public_key, my_private_key)?
+                },
+                "Mathematical Concept Demo" => {
+                    dh::key_exchange("demo")?
+                },
+                _ => return Err(anyhow::anyhow!("Invalid choice")),
+            }
+        },
+        _ if protocol.ecdh => {
+            "ECDH key exchange is not yet implemented. Coming soon!".to_string()
+        },
+        _ => return Err(anyhow::anyhow!("Unknown key exchange protocol")),
+    };
+
+    println!("\n{} {}", "Result:".cyan().bold(), result.white());
     Ok(())
 }

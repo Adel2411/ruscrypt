@@ -26,3 +26,4 @@ base64 = "0.22.1"
 clap = { version = "4.3.19", features = ["derive"] }
 colored = "2.0.4"
 dialoguer = "0.10.4"
+rand = "0.9.1"
