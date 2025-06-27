@@ -16,7 +16,7 @@ pub mod block;
 pub mod asym;  // Add asymmetric module
 pub mod hash;
 
-pub mod tests;
+mod tests;
 
 // Re-export commonly used items for convenience
 pub use classical::*;

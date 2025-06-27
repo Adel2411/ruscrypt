@@ -7,7 +7,7 @@ use crate::stream::rc4;
 use crate::hash::{md5, sha1, sha256};
 use crate::interactive;
 use crate::block::{des, aes};
-use crate::asym::{dh};
+use crate::asym::{dh, rsa};
 
 pub fn dispatch_command(args: Args) -> Result<()> {
     // Print the parsed arguments
@@ -166,7 +166,23 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             format!("Encrypted text (DES, {}, {}): {}", mode, encoding, encrypted)
         },
         _ if algorithm.rsa => {
-            format!("RSA encryption is not yet implemented. Coming soon!")
+            let key_size = interactive::prompt_for_choices(
+                "Select RSA key size",
+                &["512", "1024", "2048"]
+            )?;
+            let encoding = interactive::prompt_for_choices(
+                "Select output encoding",
+                &["base64", "hex"]
+            )?;
+            
+            let (encrypted, private_key) = rsa::encrypt(&input, &key_size, &encoding)?;
+            
+            println!("\n🔐 RSA Encryption Complete!");
+            println!("📤 Encrypted data: {}", encrypted);
+            println!("🔑 Private key (SAVE THIS!): {}", private_key);
+            println!("⚠️  Keep your private key secure - you'll need it for decryption!");
+            
+            format!("RSA-{} encryption successful. Encrypted data and private key provided above.", key_size)
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -242,7 +258,13 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.rsa => {
-            format!("RSA decryption is not yet implemented. Coming soon!")
+            let private_key = interactive::prompt_for_input("Enter private key (format: n:d)")?;
+            let encoding = interactive::prompt_for_choices(
+                "Select input encoding",
+                &["base64", "hex"]
+            )?;
+            let decrypted = rsa::decrypt(&input, &private_key, &encoding)?;
+            format!("Decrypted text: {}", decrypted)
         },
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };

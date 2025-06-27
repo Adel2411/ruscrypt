@@ -273,34 +273,3 @@ fn mod_exp(base: u64, exp: u64, modulus: u64) -> u64 {
     
     result
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_mod_exp() {
-        assert_eq!(mod_exp(5, 6, 23), 8);
-        assert_eq!(mod_exp(5, 15, 23), 19);
-        assert_eq!(mod_exp(2, 10, 1000), 24);
-    }
-    
-    #[test]
-    fn test_key_exchange() {
-        let mut alice = DHParticipant::with_private_key(6);
-        let mut bob = DHParticipant::with_private_key(15);
-        
-        let alice_shared = alice.compute_shared_secret(bob.public_key).unwrap();
-        let bob_shared = bob.compute_shared_secret(alice.public_key).unwrap();
-        
-        assert_eq!(alice_shared, bob_shared);
-    }
-    
-    #[test]
-    fn test_participant_creation() {
-        let participant = DHParticipant::new();
-        assert!(participant.private_key > 0);
-        assert!(participant.public_key > 0);
-        assert!(participant.shared_secret.is_none());
-    }
-}

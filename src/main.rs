@@ -11,9 +11,6 @@ mod stream;
 mod block;
 mod asym;
 
-#[cfg(test)]
-mod tests;
-
 fn main() -> Result<()> {
     print_banner();
     
