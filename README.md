@@ -8,7 +8,7 @@
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
+[![Version](https://img.shields.io/badge/version-0.1.2-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
 
 **Modern cryptographic operations made simple and blazingly fast**
 
@@ -589,18 +589,18 @@ cargo test
 
 # ⚡ Run specific test files
 cargo test classical      # Test classical ciphers
-cargo stream        # Test stream ciphers  
-cargo block         # Test block ciphers
-cargo hash          # Test hash functions
-cargo asym          # Test asymmetric crypto
+cargo test stream        # Test stream ciphers  
+cargo test block         # Test block ciphers
+cargo test hash          # Test hash functions
+cargo test asym          # Test asymmetric crypto
 
 # 🎯 Run specific algorithm tests
-cargo caesar_tests        # Test Caesar cipher
-cargo vigenere_tests      # Test Vigenère cipher
-cargo aes_tests          # Test AES encryption
-cargo rsa_tests           # Test RSA encryption
-cargo sha256_tests        # Test SHA-256 hashing
-cargo dh_tests            # Test Diffie-Hellman
+cargo test caesar_tests        # Test Caesar cipher
+cargo test vigenere_tests      # Test Vigenère cipher
+cargo test aes_tests          # Test AES encryption
+cargo test rsa_tests           # Test RSA encryption
+cargo test sha256_tests        # Test SHA-256 hashing
+cargo test dh_tests            # Test Diffie-Hellman
 ```
 
 ### Manual Testing
