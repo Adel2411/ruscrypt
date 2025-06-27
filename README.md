@@ -66,6 +66,36 @@
 
 ---
 
+## 🏗️ Architecture Overview
+
+The RusCrypt toolkit follows a modular architecture designed for extensibility and maintainability
+
+### Data Flow Architecture
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant Dispatcher
+    participant Interactive
+    participant Algorithm
+    participant Utils
+    
+    User->>CLI: Command with flags
+    CLI->>Dispatcher: Parsed arguments
+    Dispatcher->>Interactive: Prompt for inputs
+    Interactive->>User: Request parameters
+    User->>Interactive: Provide inputs
+    Interactive->>Dispatcher: User data
+    Dispatcher->>Algorithm: Execute operation
+    Algorithm->>Utils: Helper functions
+    Utils->>Algorithm: Processed data
+    Algorithm->>Dispatcher: Result
+    Dispatcher->>User: Formatted output
+```
+
+---
+
 ## 🏗️ Project Structure
 
 ```
@@ -81,32 +111,10 @@ ruscrypt/
 │   ├── utils.rs                # Shared utilities
 │   │
 │   ├── classical/              # Classical ciphers
-│   │   ├── mod.rs
-│   │   ├── caesar.rs
-│   │   ├── vigenere.rs
-│   │   ├── playfair.rs
-│   │   └── rail_fence.rs
-│   │
 │   ├── stream/                 # Stream ciphers
-│   │   ├── mod.rs
-│   │   └── rc4.rs
-│   │
 │   ├── block/                  # Block ciphers
-│   │   ├── mod.rs
-│   │   ├── aes.rs
-│   │   └── des.rs
-│   │
 │   ├── asym/                   # Asymmetric crypto
-│   │   ├── mod.rs
-│   │   ├── rsa.rs
-│   │   └── dh.rs
-│   │
 │   ├── hash/                   # Hash functions
-│   │   ├── mod.rs
-│   │   ├── md5.rs
-│   │   ├── sha1.rs
-│   │   └── sha256.rs
-│   │
 │   └── tests/                  # Test modules
 │       ├── mod.rs
 │       ├── classical.rs
@@ -114,7 +122,6 @@ ruscrypt/
 │       ├── block.rs
 │       ├── hash.rs
 │       ├── asym.rs
-│       └── integration.rs
 ```
 
 ---
