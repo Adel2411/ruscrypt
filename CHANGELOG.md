@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-06-27
+
+### Changed
+- Updated README.md with improved documentation and formatting
+- Enhanced examples folder with better code examples and demonstrations
+- Improved code structure and comments in example files
+
+### Documentation
+- Better explanation of security considerations
+- Enhanced quick start guide
+- Improved algorithm descriptions and usage examples
+
 ## [0.1.0] - 2025-06-27
 
 ### Added
@@ -26,4 +38,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security warnings for deprecated algorithms (MD5, SHA-1, DES, RC4)
 - Memory-safe implementations using Rust
 
+[0.1.1]: https://github.com/Adel2411/ruscrypt/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Adel2411/ruscrypt/releases/tag/v0.1.0
