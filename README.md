@@ -8,7 +8,7 @@
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
-[![Version](https://img.shields.io/badge/version-0.1.2-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
 
 **Modern cryptographic operations made simple and blazingly fast**
 

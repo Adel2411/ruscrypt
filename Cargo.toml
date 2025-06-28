@@ -1,6 +1,6 @@
 [package]
 name = "ruscrypt"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 authors = ["Adel2411 <your-email@example.com>"]
 description = "⚡ Lightning-fast cryptography toolkit built with Rust - A comprehensive CLI tool for classical and modern cryptographic operations"
