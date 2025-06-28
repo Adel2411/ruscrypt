@@ -201,6 +201,9 @@ ruscrypt hash --<algorithm>
 
 # For key exchange protocols
 ruscrypt exchange --<protocol>
+
+# For key generation (new!)
+ruscrypt keygen --rsa
 ```
 
 ### Interactive Experience
@@ -227,6 +230,13 @@ Encrypted text: [base64 encoded result]
 $ ruscrypt hash --sha256
 Enter text to hash: password123
 SHA-256 hash: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+
+# Example: RSA key generation (new!)
+$ ruscrypt keygen --rsa
+Select RSA key size: 1024
+Select key output format: n:e / PEM
+Public Key: ...
+Private Key: ...
 ```
 
 ---
@@ -416,8 +426,15 @@ ruscrypt encrypt --rsa
 ruscrypt decrypt --rsa
 # Prompts:
 # - Text to decrypt
-# - Private key (format: n:d)
+# - Private key (format: n:d or PEM)
 # - Input encoding (base64/hex)
+
+# Key generation (new!)
+ruscrypt keygen --rsa
+# Prompts:
+# - Key size (512/1024/2048)
+# - Output format (n:e or PEM)
+# Prints public and private key in selected format
 ```
 
 **Use case**: Small data encryption and digital signatures.

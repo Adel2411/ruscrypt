@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-06-27
+
+### Added
+- New `keygen` subcommand: `ruscrypt keygen --rsa` for generating RSA key pairs.
+- RSA encryption and decryption now accept PEM key format in addition to "n:d".
+- Added multi-line input support in `interactive.rs` for pasting PEM keys and similar data.
+
 ## [0.1.2] - 2025-06-27
 
 ### Changed
@@ -45,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security warnings for deprecated algorithms (MD5, SHA-1, DES, RC4)
 - Memory-safe implementations using Rust
 
+[0.2.0]: https://github.com/Adel2411/ruscrypt/releases/tag/v0.2.0
 [0.1.2]: https://github.com/Adel2411/ruscrypt/releases/tag/v0.1.2
 [0.1.1]: https://github.com/Adel2411/ruscrypt/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Adel2411/ruscrypt/releases/tag/v0.1.0
