@@ -20,7 +20,7 @@
 use anyhow::Result;
 use colored::*;
 
-use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm, ExchangeProtocol};
+use crate::cli::{Args, Commands, EncryptionAlgorithm, HashAlgorithm, ExchangeProtocol, KeygenAlgorithm};
 use crate::classical::{caesar, rail_fence, vigenere, playfair};
 use crate::stream::rc4;
 use crate::hash::{md5, sha1, sha256};
@@ -80,6 +80,11 @@ pub fn dispatch_command(args: Args) -> Result<()> {
             let protocol_name = crate::cli::get_keyexchange_protocol_name(&protocol);
             println!("{} {}", "🔑 Key Exchange with".purple(), protocol_name.yellow().bold());
             handle_key_exchange(protocol)?;
+        },
+        Commands::Keygen { algorithm } => {
+            let algo_name = crate::cli::get_keygen_algorithm_name(&algorithm);
+            println!("{} {}", "🔑 Generating key for".cyan(), algo_name.yellow().bold());
+            handle_keygen(algorithm)?;
         },
     }
 
@@ -193,8 +198,11 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
                 "Select output encoding",
                 &["base64", "hex"]
             )?;
-            
-            let (encrypted, private_key) = rsa::encrypt(&input, &key_size, &encoding)?;
+            let privkey_format = interactive::prompt_for_choices(
+                "Select private key output format",
+                &["n:d", "PEM"]
+            )?;
+            let (encrypted, private_key) = rsa::encrypt(&input, &key_size, &encoding, &privkey_format)?;
             
             println!("\n🔐 RSA Encryption Complete!");
             println!("📤 Encrypted data: {}", encrypted);
@@ -307,7 +315,9 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             format!("Decrypted text: {}", decrypted)
         },
         _ if algorithm.rsa => {
-            let private_key = interactive::prompt_for_input("Enter private key (format: n:d)")?;
+            let private_key = interactive::prompt_for_multiline_input(
+                "Enter private key (format: n:d or PEM block, end with empty line)"
+            )?;
             let encoding = interactive::prompt_for_choices(
                 "Select input encoding",
                 &["base64", "hex"]
@@ -393,7 +403,8 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
 /// 
 /// For Diffie-Hellman:
 /// - **Interactive Simulation**: Demonstrates Alice & Bob exchange
-/// - **Manual Exchange**: Real-world usage with other parties
+/// - **Manual Exchange - Start Session**: Real-world usage with other parties
+/// - **Manual Exchange - Complete with Other's Key**: Complete the exchange with a given key
 /// - **Mathematical Demo**: Shows the underlying mathematics
 /// 
 /// # Security Considerations
@@ -456,4 +467,49 @@ fn handle_key_exchange(protocol: ExchangeProtocol) -> Result<()> {
 
     println!("\n{} {}", "Result:".cyan().bold(), result.white());
     Ok(())
+}
+
+/// Handle key generation operations for supported algorithms
+///
+/// This function manages the key generation workflow by:
+/// 1. Prompting for key size and output format
+/// 2. Calling the appropriate key generation function
+/// 3. Displaying the generated keys in the selected format
+///
+/// # Arguments
+///
+/// * `algorithm` - The key generation algorithm configuration
+///
+/// # Returns
+///
+/// Returns `Ok(())` on successful key generation, or an error if the operation fails.
+///
+/// # Interactive Prompts
+///
+/// - Key size (e.g., 512, 1024, 2048 for RSA)
+/// - Output format (e.g., "n:e" or "PEM")
+///
+/// # Errors
+///
+/// Can return errors from:
+/// - Invalid user input
+/// - Key generation failures
+/// - I/O errors during prompts
+fn handle_keygen(algorithm: KeygenAlgorithm) -> Result<()> {
+    if algorithm.rsa {
+        let key_size = interactive::prompt_for_choices(
+            "Select RSA key size",
+            &["512", "1024", "2048"]
+        )?;
+        let format = interactive::prompt_for_key_output_format()?;
+        let key_size_num = key_size.parse::<u32>()
+            .map_err(|_| anyhow::anyhow!("Invalid key size"))?;
+        let (public_key, private_key) = rsa::keygen_and_export(key_size_num, &format)?;
+        println!("\n{} {}", "Public Key:".green().bold(), public_key.white());
+        println!("{} {}", "Private Key:".yellow().bold(), private_key.white());
+        println!("⚠️  Keep your private key secure!");
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Unknown key generation algorithm"))
+    }
 }

@@ -95,57 +95,70 @@ pub struct RSAEncryptedData {
 /// # Arguments
 /// 
 /// * `data` - The plaintext string to encrypt
-/// * `key_size` - Key size in bits: "512", "1024", or "2048"
+/// * `key_size_or_pem` - Key size in bits: "512", "1024", or "2048", or a PEM public key string
 /// * `encoding` - Output encoding: "base64" or "hex"
+/// * `privkey_format` - Output format for private key: "n:d" or "PEM"
 /// 
 /// # Returns
 /// 
 /// Returns a tuple containing:
 /// - Encrypted data as an encoded string
-/// - Private key formatted as "n:d" for later decryption
-/// 
-/// # Errors
-/// 
-/// Returns an error if:
-/// - Invalid key size specified
-/// - Unsupported encoding format
-/// - Key generation fails (rare, but can happen with small primes)
-/// - Message is too large for the key size
-/// 
-/// # Examples
-/// 
-/// ```rust
-/// use ruscrypt::asym::rsa;
-/// 
-/// let (encrypted, private_key) = rsa::encrypt("Secret message", "1024", "base64").unwrap();
-/// println!("Encrypted: {}", encrypted);
-/// println!("Private key (save this!): {}", private_key);
-/// 
-/// // Later, decrypt with the private key
-/// let decrypted = rsa::decrypt(&encrypted, &private_key, "base64").unwrap();
-/// assert_eq!(decrypted, "Secret message");
-/// ```
-/// 
-/// # Security Note
-/// 
-/// ⚠️ The generated keys use small sizes suitable only for educational purposes.
-/// Real applications should use at least 2048-bit keys with proper padding.
-pub fn encrypt(data: &str, key_size: &str, encoding: &str) -> Result<(String, String)> {
-    let key_bits: u32 = key_size.parse()
-        .map_err(|_| anyhow::anyhow!("Invalid key size: {}", key_size))?;
-    
-    if ![512, 1024, 2048].contains(&key_bits) {
-        return Err(anyhow::anyhow!("Key size must be 512, 1024, or 2048 bits"));
-    }
-    
-    println!("\n🔑 Generating RSA key pair...");
-    let key_pair = generate_key_pair(key_bits)?;
-    
-    println!("✅ Key pair generated successfully!");
-    println!("📋 Public Key (n={}, e={})", key_pair.public_key.n, key_pair.public_key.e);
-    
-    let encrypted_data = rsa_encrypt(data.as_bytes(), &key_pair.public_key)?;
-    
+/// - Private key formatted as requested, or empty string if PEM public key was used
+pub fn encrypt(
+    data: &str,
+    key_size_or_pem: &str,
+    encoding: &str,
+    privkey_format: &str,
+) -> Result<(String, String)> {
+    // Check if input is a PEM public key
+    let is_pem = key_size_or_pem.trim_start().starts_with("-----BEGIN RSA PUBLIC KEY-----");
+    let (public_key, private_key_string) = if is_pem {
+        // Parse PEM public key
+        let lines: Vec<&str> = key_size_or_pem
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .collect();
+        let start = lines.iter().position(|l| l.starts_with("-----BEGIN RSA PUBLIC KEY-----"));
+        let end = lines.iter().position(|l| l.starts_with("-----END RSA PUBLIC KEY-----"));
+        if let (Some(start), Some(end)) = (start, end) {
+            let b64 = lines[start+1..end].join("");
+            let decoded = from_base64(&b64)
+                .map_err(|_| anyhow::anyhow!("Invalid base64 in PEM"))?;
+            let key_str = String::from_utf8(decoded)
+                .map_err(|_| anyhow::anyhow!("Invalid UTF-8 in PEM key data"))?;
+            let parts: Vec<&str> = key_str.split(':').collect();
+            if parts.len() != 2 {
+                return Err(anyhow::anyhow!("Invalid PEM public key format"));
+            }
+            let n = parts[0].parse::<u64>()
+                .map_err(|_| anyhow::anyhow!("Invalid modulus in PEM public key"))?;
+            let e = parts[1].parse::<u64>()
+                .map_err(|_| anyhow::anyhow!("Invalid exponent in PEM public key"))?;
+            (RSAPublicKey { n, e }, String::new())
+        } else {
+            return Err(anyhow::anyhow!("Invalid PEM format for RSA public key"));
+        }
+    } else {
+        // Parse as key size and generate key pair
+        let key_bits: u32 = key_size_or_pem.parse()
+            .map_err(|_| anyhow::anyhow!("Invalid key size: {}", key_size_or_pem))?;
+        if ![512, 1024, 2048].contains(&key_bits) {
+            return Err(anyhow::anyhow!("Key size must be 512, 1024, or 2048 bits"));
+        }
+        println!("\n🔑 Generating RSA key pair...");
+        let key_pair = generate_key_pair(key_bits)?;
+        println!("✅ Key pair generated successfully!");
+        println!("📋 Public Key (n={}, e={})", key_pair.public_key.n, key_pair.public_key.e);
+        let priv_str = match privkey_format.to_lowercase().as_str() {
+            "pem" => export_private_key_pem(&key_pair.private_key),
+            _ => format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d),
+        };
+        (key_pair.public_key, priv_str)
+    };
+
+    let encrypted_data = rsa_encrypt(data.as_bytes(), &public_key)?;
+
     let encrypted_string = match encoding.to_lowercase().as_str() {
         "base64" => {
             let bytes: Vec<u8> = encrypted_data.ciphertext
@@ -163,9 +176,7 @@ pub fn encrypt(data: &str, key_size: &str, encoding: &str) -> Result<(String, St
         },
         _ => return Err(anyhow::anyhow!("Unsupported encoding: {}. Use 'base64' or 'hex'", encoding))
     };
-    
-    let private_key_string = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
-    
+
     Ok((encrypted_string, private_key_string))
 }
 
@@ -177,7 +188,7 @@ pub fn encrypt(data: &str, key_size: &str, encoding: &str) -> Result<(String, St
 /// # Arguments
 /// 
 /// * `data` - The encrypted data (in specified encoding)
-/// * `private_key_str` - Private key in "n:d" format
+/// * `private_key_str` - Private key in "n:d" format or PEM format
 /// * `encoding` - Input encoding: "base64" or "hex"
 /// 
 /// # Returns
@@ -202,7 +213,11 @@ pub fn encrypt(data: &str, key_size: &str, encoding: &str) -> Result<(String, St
 /// let decrypted = rsa::decrypt(encrypted_data, private_key, "base64").unwrap();
 /// ```
 pub fn decrypt(data: &str, private_key_str: &str, encoding: &str) -> Result<String> {
-    let private_key = parse_private_key(private_key_str)?;
+    let private_key = if private_key_str.trim_start().starts_with("-----BEGIN RSA PRIVATE KEY-----") {
+        import_private_key_pem(private_key_str)?
+    } else {
+        parse_private_key(private_key_str)?
+    };
     
     let ciphertext_nums = match encoding.to_lowercase().as_str() {
         "base64" => {
@@ -233,9 +248,58 @@ pub fn decrypt(data: &str, private_key_str: &str, encoding: &str) -> Result<Stri
     };
     
     let decrypted_bytes = rsa_decrypt(&ciphertext_nums, &private_key)?;
-    
     String::from_utf8(decrypted_bytes)
         .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in decrypted data: {}", e))
+}
+
+/// Exports the RSA public key in "n:e" format as a string.
+pub fn export_public_key_ne(public_key: &RSAPublicKey) -> String {
+    format!("{}:{}", public_key.n, public_key.e)
+}
+
+/// Exports the RSA public key in a simple PEM-like format (not X.509).
+pub fn export_public_key_pem(public_key: &RSAPublicKey) -> String {
+    let key_data = format!("{}:{}", public_key.n, public_key.e);
+    let b64 = to_base64(key_data.as_bytes());
+    format!(
+        "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----",
+        b64
+    )
+}
+
+/// Exports the RSA private key in a simple PEM-like format (not PKCS#8).
+pub fn export_private_key_pem(private_key: &RSAPrivateKey) -> String {
+    let key_data = format!("{}:{}", private_key.n, private_key.d);
+    let b64 = to_base64(key_data.as_bytes());
+    format!(
+        "-----BEGIN RSA PRIVATE KEY-----\n{}\n-----END RSA PRIVATE KEY-----",
+        b64
+    )
+}
+
+/// Imports an RSA private key from a simple PEM-like format.
+/// The PEM format is expected to be:
+/// -----BEGIN RSA PRIVATE KEY-----
+/// <base64(n:d)>
+/// -----END RSA PRIVATE KEY-----
+pub fn import_private_key_pem(pem: &str) -> Result<RSAPrivateKey> {
+    let lines: Vec<&str> = pem
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
+    let start = lines.iter().position(|l| l.starts_with("-----BEGIN RSA PRIVATE KEY-----"));
+    let end = lines.iter().position(|l| l.starts_with("-----END RSA PRIVATE KEY-----"));
+    if let (Some(start), Some(end)) = (start, end) {
+        let b64 = lines[start+1..end].join("");
+        let decoded = from_base64(&b64)
+            .map_err(|_| anyhow::anyhow!("Invalid base64 in PEM"))?;
+        let key_str = String::from_utf8(decoded)
+            .map_err(|_| anyhow::anyhow!("Invalid UTF-8 in PEM key data"))?;
+        parse_private_key(&key_str)
+    } else {
+        Err(anyhow::anyhow!("Invalid PEM format for RSA private key"))
+    }
 }
 
 /// Generates an RSA key pair with the specified key size.
@@ -307,6 +371,30 @@ pub fn generate_key_pair(key_size: u32) -> Result<RSAKeyPair> {
     let private_key = RSAPrivateKey { n, d };
     
     Ok(RSAKeyPair { public_key, private_key })
+}
+
+/// Generate an RSA key pair and output in the selected format.
+/// 
+/// # Arguments
+/// * `key_size` - Key size in bits (512, 1024, 2048)
+/// * `format` - Output format: "n:e" or "PEM"
+/// 
+/// # Returns
+/// Returns (public_key_string, private_key_string)
+pub fn keygen_and_export(key_size: u32, format: &str) -> Result<(String, String)> {
+    let key_pair = generate_key_pair(key_size)?;
+    let (pub_str, priv_str) = match format.to_lowercase().as_str() {
+        "n:e" => (
+            export_public_key_ne(&key_pair.public_key),
+            format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d)
+        ),
+        "pem" => (
+            export_public_key_pem(&key_pair.public_key),
+            export_private_key_pem(&key_pair.private_key)
+        ),
+        _ => return Err(anyhow::anyhow!("Unsupported key output format")),
+    };
+    Ok((pub_str, priv_str))
 }
 
 /// Encrypts binary data using RSA public key encryption.

@@ -294,7 +294,10 @@ mod tests {
 
     #[cfg(test)]
     mod rsa_tests {
-        use crate::asym::rsa::{generate_key_pair, rsa_encrypt, rsa_decrypt, encrypt, decrypt};
+        use crate::asym::rsa::{
+            generate_key_pair, rsa_encrypt, rsa_decrypt, encrypt, decrypt,
+            export_public_key_pem, export_private_key_pem, import_private_key_pem, RSAPrivateKey
+        };
 
         #[test]
         fn test_key_generation_512() {
@@ -381,7 +384,7 @@ mod tests {
         #[test]
         fn test_cli_encrypt_decrypt_base64() {
             let message = "Test message";
-            let (encrypted, private_key) = encrypt(message, "512", "base64").unwrap();
+            let (encrypted, private_key) = encrypt(message, "512", "base64", "n:d").unwrap();
             let decrypted = decrypt(&encrypted, &private_key, "base64").unwrap();
             
             assert_eq!(message, decrypted);
@@ -392,7 +395,7 @@ mod tests {
             // Try multiple times in case of prime generation failure
             for _ in 0..5 {
                 let message = "Test message";
-                if let Ok((encrypted, private_key)) = encrypt(message, "512", "hex") {
+                if let Ok((encrypted, private_key)) = encrypt(message, "512", "hex", "n:d") {
                     // Verify hex format
                     assert!(encrypted.chars().all(|c| c.is_ascii_hexdigit()));
                     assert_eq!(encrypted.len() % 2, 0);
@@ -407,14 +410,14 @@ mod tests {
 
         #[test]
         fn test_invalid_key_size() {
-            assert!(encrypt("test", "256", "base64").is_err());
-            assert!(encrypt("test", "4096", "base64").is_err());
-            assert!(encrypt("test", "abc", "base64").is_err());
+            assert!(encrypt("test", "256", "base64", "n:d").is_err());
+            assert!(encrypt("test", "4096", "base64", "n:d").is_err());
+            assert!(encrypt("test", "abc", "base64", "n:d").is_err());
         }
 
         #[test]
         fn test_invalid_encoding() {
-            assert!(encrypt("test", "512", "invalid").is_err());
+            assert!(encrypt("test", "512", "invalid", "n:d").is_err());
         }
 
         #[test]
@@ -460,7 +463,7 @@ mod tests {
         #[test]
         fn test_hex_format_consistency() {
             for _ in 0..3 {
-                if let Ok((encrypted, private_key)) = encrypt("Test hex format", "512", "hex") {
+                if let Ok((encrypted, private_key)) = encrypt("Test hex format", "512", "hex", "n:d") {
                     // Verify hex format
                     assert!(encrypted.chars().all(|c| c.is_ascii_hexdigit()));
                     assert_eq!(encrypted.len() % 2, 0);
@@ -483,6 +486,66 @@ mod tests {
                 }
             }
             panic!("Prime generation failed consistently");
+        }
+
+        #[test]
+        fn test_export_import_private_key_pem() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let pem = export_private_key_pem(&key_pair.private_key);
+            let imported = import_private_key_pem(&pem).unwrap();
+            assert_eq!(key_pair.private_key.n, imported.n);
+            assert_eq!(key_pair.private_key.d, imported.d);
+        }
+
+        #[test]
+        fn test_encrypt_decrypt_with_pem_private_key() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "PEM test message";
+            let encrypted = rsa_encrypt(message.as_bytes(), &key_pair.public_key).unwrap();
+            let pem = export_private_key_pem(&key_pair.private_key);
+            let imported = import_private_key_pem(&pem).unwrap();
+            let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &imported).unwrap();
+            let decrypted = String::from_utf8(decrypted_bytes).unwrap();
+            assert_eq!(message, decrypted);
+        }
+
+        #[test]
+        fn test_cli_encrypt_decrypt_with_pem_private_key() {
+            let message = "Test PEM CLI";
+            let (encrypted, private_key) = encrypt(message, "512", "base64", "n:d").unwrap();
+            // Convert n:d to PEM
+            let parts: Vec<&str> = private_key.split(':').collect();
+            assert_eq!(parts.len(), 2);
+            let n = parts[0].parse::<u64>().unwrap();
+            let d = parts[1].parse::<u64>().unwrap();
+            let pem = export_private_key_pem(&RSAPrivateKey { n, d });
+            let decrypted = decrypt(&encrypted, &pem, "base64").unwrap();
+            assert_eq!(message, decrypted);
+        }
+
+        #[test]
+        fn test_cli_encrypt_decrypt_with_direct_pem_private_key() {
+            let message = "Test PEM CLI direct";
+            let (encrypted, private_key) = encrypt(message, "512", "base64", "PEM").unwrap();
+            let decrypted = decrypt(&encrypted, &private_key, "base64").unwrap();
+            assert_eq!(message, decrypted);
+        }
+
+        #[test]
+        fn test_invalid_pem_import() {
+            // Not a PEM block
+            assert!(import_private_key_pem("not a pem").is_err());
+            // Corrupted PEM block
+            let pem = "-----BEGIN RSA PRIVATE KEY-----\ninvalidbase64\n-----END RSA PRIVATE KEY-----";
+            assert!(import_private_key_pem(pem).is_err());
+        }
+
+        #[test]
+        fn test_export_public_key_pem_format() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let pem = export_public_key_pem(&key_pair.public_key);
+            assert!(pem.starts_with("-----BEGIN RSA PUBLIC KEY-----"));
+            assert!(pem.ends_with("-----END RSA PUBLIC KEY-----"));
         }
     }
 }

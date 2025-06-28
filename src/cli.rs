@@ -152,6 +152,15 @@ pub enum Commands {
         #[command(flatten)]
         protocol: ExchangeProtocol,
     },
+    /// Generate cryptographic key pairs
+    /// 
+    /// Supports generating keys for supported algorithms (currently RSA).
+    /// Prompts for output format (n:e or PEM).
+    Keygen {
+        /// The key generation algorithm to use
+        #[command(flatten)]
+        algorithm: KeygenAlgorithm,
+    },
 }
 
 /// Encryption and decryption algorithm selection
@@ -278,6 +287,18 @@ pub struct ExchangeProtocol {
     /// ⚠️ **Not Implemented**: This feature is planned for future releases.
     #[arg(long)]
     pub ecdh: bool,
+}
+
+/// Key generation algorithm selection
+/// 
+/// Allows the user to select which algorithm to generate keys for.
+/// Currently only RSA is supported.
+#[derive(ClapArgs, Debug, Default)]
+#[group(required = true, multiple = false)]
+pub struct KeygenAlgorithm {
+    /// RSA key pair generation
+    #[arg(long)]
+    pub rsa: bool,
 }
 
 /// Parse command line arguments
@@ -413,6 +434,37 @@ pub fn get_keyexchange_protocol_name(protocol: &ExchangeProtocol) -> &'static st
         "Diffie-Hellman"
     } else if protocol.ecdh {
         "ECDH (Not implemented)"
+    } else {
+        "Unknown"
+    }
+}
+
+/// Get the human-readable name of the selected keygen algorithm
+/// 
+/// Converts the boolean flags in `KeygenAlgorithm` to a readable string
+/// representation of the selected key generation algorithm.
+/// 
+/// # Arguments
+/// 
+/// * `algo` - Reference to the `KeygenAlgorithm` struct
+/// 
+/// # Returns
+/// 
+/// Returns a static string slice containing the keygen algorithm name, or "Unknown"
+/// if no algorithm is selected.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruscrypt::cli::{KeygenAlgorithm, get_keygen_algorithm_name};
+/// 
+/// let mut algo = KeygenAlgorithm::default();
+/// algo.rsa = true;
+/// assert_eq!(get_keygen_algorithm_name(&algo), "RSA");
+/// ```
+pub fn get_keygen_algorithm_name(algo: &KeygenAlgorithm) -> &'static str {
+    if algo.rsa {
+        "RSA"
     } else {
         "Unknown"
     }

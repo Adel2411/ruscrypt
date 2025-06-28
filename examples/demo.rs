@@ -188,7 +188,7 @@ fn demo_asymmetric_crypto() -> Result<()> {
     // RSA with different key sizes
     for key_size in ["512", "1024"] {
         println!("\n   📌 RSA-{} Encryption:", key_size);
-        let (encrypted, private_key) = rsa::encrypt(sample_text, key_size, "base64")?;
+        let (encrypted, private_key) = rsa::encrypt(sample_text, key_size, "base64", "n:e")?;
         let decrypted = rsa::decrypt(&encrypted, &private_key, "base64")?;
         println!("      Original: {}", sample_text.white());
         println!("      Key Size: {} bits", key_size.cyan());

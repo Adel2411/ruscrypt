@@ -129,7 +129,7 @@ fn quick_asymmetric_example() -> Result<()> {
     let message = "Hello RSA!";
     
     // Encrypt (generates key pair automatically)
-    let (encrypted, private_key) = rsa::encrypt(message, "512", "base64")?;
+    let (encrypted, private_key) = rsa::encrypt(message, "512", "base64", "n:e")?;
     println!("   📝 Original: {}", message.cyan());
     println!("   🔒 Encrypted: {}...", encrypted[..30].green().bold());
     println!("   🔑 Private Key: {}...", private_key[..20].yellow());

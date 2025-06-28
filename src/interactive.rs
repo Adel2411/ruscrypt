@@ -206,3 +206,54 @@ pub fn prompt_for_choices(prompt: &str, choices: &[&str]) -> Result<String> {
 
     Ok(choices[selection].to_string())
 }
+
+/// Prompt user to select key output format for key generation
+///
+/// Returns either "n:e" or "PEM" as a string.
+pub fn prompt_for_key_output_format() -> Result<String> {
+    prompt_for_choices(
+        "Select key output format",
+        &["n:e", "PEM"]
+    )
+}
+
+/// Prompt user for multi-line input (e.g., PEM keys)
+///
+/// Displays a prompt and reads lines until an empty line is entered.
+/// Returns the concatenated input as a single String.
+///
+/// # Arguments
+///
+/// * `prompt` - The message to display to the user
+///
+/// # Returns
+///
+/// Returns the user's multi-line input as a `String` wrapped in a `Result`.
+///
+/// # Examples
+///
+/// ```rust
+/// use ruscrypt::interactive;
+/// let pem = interactive::prompt_for_multiline_input("Paste your PEM key (end with empty line):")?;
+/// ```
+pub fn prompt_for_multiline_input(prompt: &str) -> Result<String> {
+    use std::io::{self, BufRead, Write};
+    println!("{}", prompt);
+    println!("(End input with an empty line)");
+    let stdin = io::stdin();
+    let mut lines = Vec::new();
+    loop {
+        print!("> ");
+        io::stdout().flush().ok();
+        let mut buf = String::new();
+        if stdin.lock().read_line(&mut buf)? == 0 {
+            break;
+        }
+        let line = buf.trim_end_matches(&['\n', '\r'][..]);
+        if line.is_empty() {
+            break;
+        }
+        lines.push(line.to_string());
+    }
+    Ok(lines.join("\n"))
+}
