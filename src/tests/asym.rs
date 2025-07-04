@@ -3,7 +3,10 @@ mod tests {
 
     #[cfg(test)]
     mod dh_tests {
-        use crate::asym::dh::{DHParticipant, demonstrate_concept, key_exchange, start_manual_key_exchange, complete_manual_key_exchange};
+        use crate::asym::dh::{
+            complete_manual_key_exchange, demonstrate_concept, key_exchange,
+            start_manual_key_exchange, DHParticipant,
+        };
 
         #[test]
         fn test_participant_creation() {
@@ -28,10 +31,10 @@ mod tests {
         fn test_key_exchange_basic() {
             let mut alice = DHParticipant::with_private_key(6);
             let mut bob = DHParticipant::with_private_key(15);
-            
+
             let alice_shared = alice.compute_shared_secret(bob.public_key).unwrap();
             let bob_shared = bob.compute_shared_secret(alice.public_key).unwrap();
-            
+
             assert_eq!(alice_shared, bob_shared);
             assert_eq!(alice.get_shared_secret(), Some(alice_shared));
             assert_eq!(bob.get_shared_secret(), Some(bob_shared));
@@ -42,17 +45,17 @@ mod tests {
             let mut alice = DHParticipant::with_private_key(10);
             let mut bob = DHParticipant::with_private_key(20);
             let mut charlie = DHParticipant::with_private_key(30);
-            
+
             // Alice and Bob exchange
             let alice_bob_shared = alice.compute_shared_secret(bob.public_key).unwrap();
             let bob_alice_shared = bob.compute_shared_secret(alice.public_key).unwrap();
             assert_eq!(alice_bob_shared, bob_alice_shared);
-            
-            // Alice and Charlie exchange  
+
+            // Alice and Charlie exchange
             let alice_charlie_shared = alice.compute_shared_secret(charlie.public_key).unwrap();
             let charlie_alice_shared = charlie.compute_shared_secret(alice.public_key).unwrap();
             assert_eq!(alice_charlie_shared, charlie_alice_shared);
-            
+
             // Different pairs should have different shared secrets
             assert_ne!(alice_bob_shared, alice_charlie_shared);
         }
@@ -62,10 +65,10 @@ mod tests {
             let mut alice1 = DHParticipant::with_private_key(10);
             let mut alice2 = DHParticipant::with_private_key(20);
             let bob = DHParticipant::with_private_key(30);
-            
+
             let shared1 = alice1.compute_shared_secret(bob.public_key).unwrap();
             let shared2 = alice2.compute_shared_secret(bob.public_key).unwrap();
-            
+
             // Different private keys should produce different shared secrets
             assert_ne!(shared1, shared2);
         }
@@ -100,7 +103,7 @@ mod tests {
         fn test_consistent_key_generation() {
             let alice1 = DHParticipant::with_private_key(100);
             let alice2 = DHParticipant::with_private_key(100);
-            
+
             // Same private key should generate same public key
             assert_eq!(alice1.public_key, alice2.public_key);
             assert_eq!(alice1.private_key, alice2.private_key);
@@ -116,7 +119,7 @@ mod tests {
         fn test_get_shared_secret_after_computation() {
             let mut alice = DHParticipant::with_private_key(50);
             let bob = DHParticipant::with_private_key(75);
-            
+
             let shared = alice.compute_shared_secret(bob.public_key).unwrap();
             assert_eq!(alice.get_shared_secret(), Some(shared));
         }
@@ -125,7 +128,7 @@ mod tests {
         fn test_manual_key_exchange_start() {
             let result = start_manual_key_exchange();
             assert!(result.is_ok());
-            
+
             let message = result.unwrap();
             assert!(message.contains("SESSION_DATA:"));
             assert!(message.contains("private_key="));
@@ -139,22 +142,22 @@ mod tests {
             // Create a participant for testing
             let alice = DHParticipant::with_private_key(12345);
             let bob = DHParticipant::with_private_key(67890);
-            
+
             // Test Alice completing the exchange with Bob's public key
             let result = complete_manual_key_exchange(bob.public_key, alice.private_key);
             assert!(result.is_ok());
-            
+
             let message = result.unwrap();
             assert!(message.contains("Shared secret:"));
-            
+
             // Verify that the shared secret is correct by computing it from Bob's side
             let mut bob_copy = DHParticipant::with_private_key(67890);
             let bob_shared = bob_copy.compute_shared_secret(alice.public_key).unwrap();
-            
+
             // Extract the shared secret from Alice's result
             let alice_shared_str = message.split("Shared secret: ").nth(1).unwrap();
             let alice_shared: u64 = alice_shared_str.parse().unwrap();
-            
+
             assert_eq!(alice_shared, bob_shared);
         }
 
@@ -170,32 +173,32 @@ mod tests {
         #[test]
         fn test_manual_key_exchange_workflow() {
             // Test the complete workflow of manual key exchange
-            
+
             // Step 1: Alice starts the exchange
             let alice_session = start_manual_key_exchange().unwrap();
             assert!(alice_session.contains("SESSION_DATA:"));
-            
+
             // Extract Alice's data from session string
             let alice_data: Vec<&str> = alice_session.split(", ").collect();
             let alice_private_str = alice_data[0].split("private_key=").nth(1).unwrap();
             let alice_public_str = alice_data[1].split("public_key=").nth(1).unwrap();
-            
+
             let alice_private: u64 = alice_private_str.parse().unwrap();
             let alice_public: u64 = alice_public_str.parse().unwrap();
-            
+
             // Step 2: Bob also starts (simulated)
             let bob = DHParticipant::with_private_key(98765);
-            
+
             // Step 3: Alice completes with Bob's public key
             let alice_result = complete_manual_key_exchange(bob.public_key, alice_private).unwrap();
-            
+
             // Step 4: Bob completes with Alice's public key
             let bob_result = complete_manual_key_exchange(alice_public, bob.private_key).unwrap();
-            
+
             // Both should have the same shared secret
             let alice_shared_str = alice_result.split("Shared secret: ").nth(1).unwrap();
             let bob_shared_str = bob_result.split("Shared secret: ").nth(1).unwrap();
-            
+
             assert_eq!(alice_shared_str, bob_shared_str);
         }
 
@@ -228,11 +231,15 @@ mod tests {
             for i in 1..10 {
                 let mut alice = DHParticipant::with_private_key(i * 7);
                 let mut bob = DHParticipant::with_private_key(i * 11);
-                
+
                 let alice_shared = alice.compute_shared_secret(bob.public_key).unwrap();
                 let bob_shared = bob.compute_shared_secret(alice.public_key).unwrap();
-                
-                assert_eq!(alice_shared, bob_shared, "Failed symmetry test with iteration {}", i);
+
+                assert_eq!(
+                    alice_shared, bob_shared,
+                    "Failed symmetry test with iteration {}",
+                    i
+                );
             }
         }
 
@@ -259,10 +266,10 @@ mod tests {
             let mut alice = DHParticipant::with_private_key(42);
             let bob1 = DHParticipant::with_private_key(17);
             let bob2 = DHParticipant::with_private_key(23);
-            
+
             let shared1 = alice.compute_shared_secret(bob1.public_key).unwrap();
             let shared2 = alice.compute_shared_secret(bob2.public_key).unwrap();
-            
+
             // Alice should be able to compute multiple shared secrets
             assert_ne!(shared1, shared2);
             // Latest computation should be stored
@@ -273,10 +280,10 @@ mod tests {
         fn test_large_private_keys() {
             let mut alice = DHParticipant::with_private_key(999999);
             let mut bob = DHParticipant::with_private_key(999998);
-            
+
             let alice_shared = alice.compute_shared_secret(bob.public_key).unwrap();
             let bob_shared = bob.compute_shared_secret(alice.public_key).unwrap();
-            
+
             assert_eq!(alice_shared, bob_shared);
         }
 
@@ -284,10 +291,10 @@ mod tests {
         fn test_small_private_keys() {
             let mut alice = DHParticipant::with_private_key(2);
             let mut bob = DHParticipant::with_private_key(3);
-            
+
             let alice_shared = alice.compute_shared_secret(bob.public_key).unwrap();
             let bob_shared = bob.compute_shared_secret(alice.public_key).unwrap();
-            
+
             assert_eq!(alice_shared, bob_shared);
         }
     }
@@ -295,8 +302,8 @@ mod tests {
     #[cfg(test)]
     mod rsa_tests {
         use crate::asym::rsa::{
-            generate_key_pair, rsa_encrypt, rsa_decrypt, encrypt, decrypt,
-            export_public_key_pem, export_private_key_pem, import_private_key_pem, RSAPrivateKey
+            decrypt, encrypt, export_private_key_pem, export_public_key_pem, generate_key_pair,
+            import_private_key_pem, rsa_decrypt, rsa_encrypt, RSAPrivateKey,
         };
 
         #[test]
@@ -320,11 +327,12 @@ mod tests {
         fn test_encrypt_decrypt_basic() {
             let key_pair = generate_key_pair(512).unwrap();
             let message = "Hello, RSA!";
-            
+
             let encrypted = rsa_encrypt(message.as_bytes(), &key_pair.public_key).unwrap();
-            let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+            let decrypted_bytes =
+                rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
             let decrypted = String::from_utf8(decrypted_bytes).unwrap();
-            
+
             assert_eq!(message, decrypted);
         }
 
@@ -333,11 +341,12 @@ mod tests {
             for _ in 0..5 {
                 if let Ok(key_pair) = generate_key_pair(512) {
                     let message = "";
-                    
+
                     let encrypted = rsa_encrypt(message.as_bytes(), &key_pair.public_key).unwrap();
-                    let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+                    let decrypted_bytes =
+                        rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
                     let decrypted = String::from_utf8(decrypted_bytes).unwrap();
-                    
+
                     assert_eq!(message, decrypted);
                     return;
                 }
@@ -349,11 +358,12 @@ mod tests {
         fn test_encrypt_decrypt_single_char() {
             let key_pair = generate_key_pair(512).unwrap();
             let message = "A";
-            
+
             let encrypted = rsa_encrypt(message.as_bytes(), &key_pair.public_key).unwrap();
-            let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+            let decrypted_bytes =
+                rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
             let decrypted = String::from_utf8(decrypted_bytes).unwrap();
-            
+
             assert_eq!(message, decrypted);
         }
 
@@ -361,11 +371,12 @@ mod tests {
         fn test_encrypt_decrypt_unicode() {
             let key_pair = generate_key_pair(1024).unwrap();
             let message = "Hello 世界! 🔐";
-            
+
             let encrypted = rsa_encrypt(message.as_bytes(), &key_pair.public_key).unwrap();
-            let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+            let decrypted_bytes =
+                rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
             let decrypted = String::from_utf8(decrypted_bytes).unwrap();
-            
+
             assert_eq!(message, decrypted);
         }
 
@@ -373,11 +384,12 @@ mod tests {
         fn test_encrypt_decrypt_long_message() {
             let key_pair = generate_key_pair(1024).unwrap();
             let message = "This is a longer message to test RSA encryption with multiple blocks.";
-            
+
             let encrypted = rsa_encrypt(message.as_bytes(), &key_pair.public_key).unwrap();
-            let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+            let decrypted_bytes =
+                rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
             let decrypted = String::from_utf8(decrypted_bytes).unwrap();
-            
+
             assert_eq!(message, decrypted);
         }
 
@@ -386,7 +398,7 @@ mod tests {
             let message = "Test message";
             let (encrypted, private_key) = encrypt(message, "512", "base64", "n:d").unwrap();
             let decrypted = decrypt(&encrypted, &private_key, "base64").unwrap();
-            
+
             assert_eq!(message, decrypted);
         }
 
@@ -399,7 +411,7 @@ mod tests {
                     // Verify hex format
                     assert!(encrypted.chars().all(|c| c.is_ascii_hexdigit()));
                     assert_eq!(encrypted.len() % 2, 0);
-                    
+
                     let decrypted = decrypt(&encrypted, &private_key, "hex").unwrap();
                     assert_eq!(message, decrypted);
                     return; // Test passed
@@ -432,10 +444,10 @@ mod tests {
             let key_pair1 = generate_key_pair(512).unwrap();
             let key_pair2 = generate_key_pair(512).unwrap();
             let message = "Same message";
-            
+
             let encrypted1 = rsa_encrypt(message.as_bytes(), &key_pair1.public_key).unwrap();
             let encrypted2 = rsa_encrypt(message.as_bytes(), &key_pair2.public_key).unwrap();
-            
+
             // Different key pairs should produce different ciphertext
             assert_ne!(encrypted1.ciphertext, encrypted2.ciphertext);
         }
@@ -446,11 +458,12 @@ mod tests {
             for _ in 0..5 {
                 if let Ok(key_pair) = generate_key_pair(1024) {
                     let original = "!@#$%^&*()_+-={}[]|\\:;\"'<>?,./~`";
-                    
+
                     let encrypted = rsa_encrypt(original.as_bytes(), &key_pair.public_key).unwrap();
-                    let decrypted_bytes = rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
+                    let decrypted_bytes =
+                        rsa_decrypt(&encrypted.ciphertext, &key_pair.private_key).unwrap();
                     let decrypted = String::from_utf8(decrypted_bytes).unwrap();
-                    
+
                     // Remove any null bytes that might have been added during decryption
                     let cleaned_decrypted = decrypted.trim_end_matches('\0');
                     assert_eq!(original, cleaned_decrypted);
@@ -463,11 +476,13 @@ mod tests {
         #[test]
         fn test_hex_format_consistency() {
             for _ in 0..3 {
-                if let Ok((encrypted, private_key)) = encrypt("Test hex format", "512", "hex", "n:d") {
+                if let Ok((encrypted, private_key)) =
+                    encrypt("Test hex format", "512", "hex", "n:d")
+                {
                     // Verify hex format
                     assert!(encrypted.chars().all(|c| c.is_ascii_hexdigit()));
                     assert_eq!(encrypted.len() % 2, 0);
-                    
+
                     // Verify round trip
                     let decrypted = decrypt(&encrypted, &private_key, "hex").unwrap();
                     assert_eq!("Test hex format", decrypted);
@@ -536,7 +551,8 @@ mod tests {
             // Not a PEM block
             assert!(import_private_key_pem("not a pem").is_err());
             // Corrupted PEM block
-            let pem = "-----BEGIN RSA PRIVATE KEY-----\ninvalidbase64\n-----END RSA PRIVATE KEY-----";
+            let pem =
+                "-----BEGIN RSA PRIVATE KEY-----\ninvalidbase64\n-----END RSA PRIVATE KEY-----";
             assert!(import_private_key_pem(pem).is_err());
         }
 

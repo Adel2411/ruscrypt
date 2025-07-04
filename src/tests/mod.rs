@@ -1,5 +1,6 @@
-pub mod classical;
-pub mod stream;
-pub mod block;
-pub mod hash;
 pub mod asym;
+pub mod block;
+pub mod classical;
+pub mod hash;
+pub mod stream;
+

@@ -42,12 +42,12 @@ mod tests {
         fn test_round_trip_both_encodings() {
             let original = "The Quick Brown Fox Jumps Over The Lazy Dog!";
             let key = "password123";
-            
+
             // Test base64
             let encrypted_b64 = rc4::encrypt(original, key, "base64").unwrap();
             let decrypted_b64 = rc4::decrypt(&encrypted_b64, key, "base64").unwrap();
             assert_eq!(decrypted_b64, original);
-            
+
             // Test hex
             let encrypted_hex = rc4::encrypt(original, key, "hex").unwrap();
             let decrypted_hex = rc4::decrypt(&encrypted_hex, key, "hex").unwrap();
@@ -75,7 +75,9 @@ mod tests {
             // Should be valid base64
             assert!(crate::utils::from_base64(&encrypted).is_ok());
             // Should only contain base64 characters
-            assert!(encrypted.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
+            assert!(encrypted
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
         }
 
         #[test]
@@ -99,7 +101,7 @@ mod tests {
             assert_eq!(encrypted_b64, "");
             let decrypted_b64 = rc4::decrypt("", "key", "base64").unwrap();
             assert_eq!(decrypted_b64, "");
-            
+
             let encrypted_hex = rc4::encrypt("", "key", "hex").unwrap();
             assert_eq!(encrypted_hex, "");
             let decrypted_hex = rc4::decrypt("", "key", "hex").unwrap();
@@ -161,10 +163,16 @@ mod tests {
         #[test]
         fn test_variable_key_lengths() {
             let text = "Test with different key lengths";
-            
+
             // Test various key lengths
-            let keys = ["a", "ab", "abc", "abcdefghijklmnop", "very_long_key_for_testing_purposes"];
-            
+            let keys = [
+                "a",
+                "ab",
+                "abc",
+                "abcdefghijklmnop",
+                "very_long_key_for_testing_purposes",
+            ];
+
             for key in &keys {
                 let encrypted = rc4::encrypt(text, key, "base64").unwrap();
                 let decrypted = rc4::decrypt(&encrypted, key, "base64").unwrap();

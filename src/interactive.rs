@@ -92,9 +92,10 @@ pub fn prompt_for_input(prompt: &str) -> Result<String> {
 /// - Terminal I/O fails
 /// - The password prompt cannot be displayed
 pub fn prompt_for_password(prompt: &str) -> Result<String> {
-    let password = Password::new().with_prompt(prompt).interact().context(
-        "Failed to read password",
-    )?;
+    let password = Password::new()
+        .with_prompt(prompt)
+        .interact()
+        .context("Failed to read password")?;
 
     Ok(password)
 }
@@ -211,10 +212,7 @@ pub fn prompt_for_choices(prompt: &str, choices: &[&str]) -> Result<String> {
 ///
 /// Returns either "n:e" or "PEM" as a string.
 pub fn prompt_for_key_output_format() -> Result<String> {
-    prompt_for_choices(
-        "Select key output format",
-        &["n:e", "PEM"]
-    )
+    prompt_for_choices("Select key output format", &["n:e", "PEM"])
 }
 
 /// Prompt user for multi-line input (e.g., PEM keys)

@@ -25,8 +25,14 @@ mod tests {
 
         #[test]
         fn test_non_alphabetic() {
-            assert_eq!(caesar::encrypt("HELLO, WORLD!", 3).unwrap(), "KHOOR, ZRUOG!");
-            assert_eq!(caesar::decrypt("KHOOR, ZRUOG!", 3).unwrap(), "HELLO, WORLD!");
+            assert_eq!(
+                caesar::encrypt("HELLO, WORLD!", 3).unwrap(),
+                "KHOOR, ZRUOG!"
+            );
+            assert_eq!(
+                caesar::decrypt("KHOOR, ZRUOG!", 3).unwrap(),
+                "HELLO, WORLD!"
+            );
         }
 
         #[test]
@@ -45,13 +51,19 @@ mod tests {
         #[test]
         fn test_encrypt_basic() {
             assert_eq!(rail_fence::encrypt("HELLO", 2).unwrap(), "HLOEL");
-            assert_eq!(rail_fence::encrypt("WEAREDISCOVEREDFLEEATONCE", 3).unwrap(), "WECRLTEERDSOEEFEAOCAIVDEN");
+            assert_eq!(
+                rail_fence::encrypt("WEAREDISCOVEREDFLEEATONCE", 3).unwrap(),
+                "WECRLTEERDSOEEFEAOCAIVDEN"
+            );
         }
 
         #[test]
         fn test_decrypt_basic() {
             assert_eq!(rail_fence::decrypt("HLOEL", 2).unwrap(), "HELLO");
-            assert_eq!(rail_fence::decrypt("WECRLTEERDSOEEFEAOCAIVDEN", 3).unwrap(), "WEAREDISCOVEREDFLEEATONCE");
+            assert_eq!(
+                rail_fence::decrypt("WECRLTEERDSOEEFEAOCAIVDEN", 3).unwrap(),
+                "WEAREDISCOVEREDFLEEATONCE"
+            );
         }
 
         #[test]
@@ -87,8 +99,14 @@ mod tests {
 
         #[test]
         fn test_with_spaces() {
-            assert_eq!(vigenere::encrypt("HELLO WORLD", "KEY").unwrap(), "RIJVS UYVJN");
-            assert_eq!(vigenere::decrypt("RIJVS UYVJN", "KEY").unwrap(), "HELLO WORLD");
+            assert_eq!(
+                vigenere::encrypt("HELLO WORLD", "KEY").unwrap(),
+                "RIJVS UYVJN"
+            );
+            assert_eq!(
+                vigenere::decrypt("RIJVS UYVJN", "KEY").unwrap(),
+                "HELLO WORLD"
+            );
         }
 
         #[test]
@@ -123,7 +141,7 @@ mod tests {
             let original = "HELLO";
             let encrypted = playfair::encrypt(original, "KEY").unwrap();
             let decrypted = playfair::decrypt(&encrypted, "KEY").unwrap();
-            
+
             // Remove padding X's for comparison
             let cleaned_decrypted = decrypted.replace('X', "");
             assert!(cleaned_decrypted.starts_with("HELLO") || decrypted.starts_with("HELLO"));
@@ -144,7 +162,9 @@ mod tests {
             let decrypted = playfair::decrypt(&encrypted, "SECRET").unwrap();
             // Playfair may insert X's, so we check if decrypted contains the original
             let cleaned_decrypted = decrypted.replace('X', "");
-            assert!(cleaned_decrypted.contains("ATTACKATDAWN") || decrypted.starts_with("ATTACKATDAWN"));
+            assert!(
+                cleaned_decrypted.contains("ATTACKATDAWN") || decrypted.starts_with("ATTACKATDAWN")
+            );
         }
 
         #[test]
@@ -153,3 +173,4 @@ mod tests {
         }
     }
 }
+

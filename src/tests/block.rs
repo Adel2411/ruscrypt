@@ -42,17 +42,17 @@ mod tests {
         fn test_round_trip_both_modes() {
             let original = "The Quick Brown Fox Jumps Over The Lazy Dog!";
             let key = "secret12";
-            
+
             // Test ECB mode
             let encrypted_ecb = des::encrypt(original, key, "ECB", "base64").unwrap();
             let decrypted_ecb = des::decrypt(&encrypted_ecb, key, "ECB", "base64").unwrap();
             assert_eq!(decrypted_ecb, original);
-            
+
             // Test CBC mode
             let encrypted_cbc = des::encrypt(original, key, "CBC", "base64").unwrap();
             let decrypted_cbc = des::decrypt(&encrypted_cbc, key, "CBC", "base64").unwrap();
             assert_eq!(decrypted_cbc, original);
-            
+
             // ECB and CBC should produce different ciphertexts
             assert_ne!(encrypted_ecb, encrypted_cbc);
         }
@@ -68,11 +68,11 @@ mod tests {
             // Too short
             assert!(des::encrypt("Hello", "short", "ECB", "base64").is_err());
             assert!(des::decrypt("data", "short", "ECB", "base64").is_err());
-            
+
             // Too long
             assert!(des::encrypt("Hello", "toolongkey", "ECB", "base64").is_err());
             assert!(des::decrypt("data", "toolongkey", "ECB", "base64").is_err());
-            
+
             // Empty
             assert!(des::encrypt("Hello", "", "ECB", "base64").is_err());
             assert!(des::decrypt("data", "", "ECB", "base64").is_err());
@@ -82,7 +82,7 @@ mod tests {
         fn test_valid_key_length() {
             let key = "exactly8"; // Exactly 8 characters
             let original = "Test message";
-            
+
             let encrypted = des::encrypt(original, key, "ECB", "base64").unwrap();
             let decrypted = des::decrypt(&encrypted, key, "ECB", "base64").unwrap();
             assert_eq!(decrypted, original);
@@ -97,11 +97,11 @@ mod tests {
         #[test]
         fn test_empty_string_both_encodings() {
             let key = "testkey1";
-            
+
             let encrypted_b64 = des::encrypt("", key, "ECB", "base64").unwrap();
             let decrypted_b64 = des::decrypt(&encrypted_b64, key, "ECB", "base64").unwrap();
             assert_eq!(decrypted_b64, "");
-            
+
             let encrypted_hex = des::encrypt("", key, "ECB", "hex").unwrap();
             let decrypted_hex = des::decrypt(&encrypted_hex, key, "ECB", "hex").unwrap();
             assert_eq!(decrypted_hex, "");
@@ -157,7 +157,9 @@ mod tests {
             // Should be valid base64
             assert!(crate::utils::from_base64(&encrypted).is_ok());
             // Should only contain base64 characters
-            assert!(encrypted.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
+            assert!(encrypted
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
         }
 
         #[test]
@@ -196,7 +198,7 @@ mod tests {
         fn test_block_size_padding() {
             // Test various input lengths to verify padding works correctly
             let key = "padtest1";
-            
+
             for length in 1..=20 {
                 let input = "a".repeat(length);
                 let encrypted = des::encrypt(&input, key, "ECB", "base64").unwrap();
@@ -210,14 +212,14 @@ mod tests {
             // Encrypt with one encoding, manually convert, decrypt with other
             let original = "Cross encoding test";
             let key = "crosskey";
-            
+
             let encrypted_hex = des::encrypt(original, key, "ECB", "hex").unwrap();
             let encrypted_b64 = des::encrypt(original, key, "ECB", "base64").unwrap();
-            
+
             // Both should decrypt to same result
             let decrypted_from_hex = des::decrypt(&encrypted_hex, key, "ECB", "hex").unwrap();
             let decrypted_from_b64 = des::decrypt(&encrypted_b64, key, "ECB", "base64").unwrap();
-            
+
             assert_eq!(decrypted_from_hex, original);
             assert_eq!(decrypted_from_b64, original);
             assert_eq!(decrypted_from_hex, decrypted_from_b64);
@@ -226,7 +228,7 @@ mod tests {
         #[test]
         fn test_invalid_encrypted_data_length() {
             let key = "testkey1";
-            
+
             // Test with data that's not a multiple of block size when decoded
             let invalid_hex = "deadbe"; // Not multiple of 16 hex chars (8 bytes)
             assert!(des::decrypt(invalid_hex, key, "ECB", "hex").is_err());
@@ -267,17 +269,21 @@ mod tests {
             let original = "The Quick Brown Fox Jumps Over The Lazy Dog!";
             let password = "securepassword123";
             let key_size = "192";
-            
+
             // Test ECB mode
-            let encrypted_ecb = aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
-            let decrypted_ecb = aes::decrypt(&encrypted_ecb, password, key_size, "ECB", "base64").unwrap();
+            let encrypted_ecb =
+                aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
+            let decrypted_ecb =
+                aes::decrypt(&encrypted_ecb, password, key_size, "ECB", "base64").unwrap();
             assert_eq!(decrypted_ecb, original);
-            
+
             // Test CBC mode
-            let encrypted_cbc = aes::encrypt(original, password, key_size, "CBC", "base64").unwrap();
-            let decrypted_cbc = aes::decrypt(&encrypted_cbc, password, key_size, "CBC", "base64").unwrap();
+            let encrypted_cbc =
+                aes::encrypt(original, password, key_size, "CBC", "base64").unwrap();
+            let decrypted_cbc =
+                aes::decrypt(&encrypted_cbc, password, key_size, "CBC", "base64").unwrap();
             assert_eq!(decrypted_cbc, original);
-            
+
             // ECB and CBC should produce different ciphertexts
             assert_ne!(encrypted_ecb, encrypted_cbc);
         }
@@ -292,10 +298,12 @@ mod tests {
         fn test_all_key_sizes() {
             let original = "Test message for all key sizes";
             let password = "testpassword";
-            
+
             for key_size in ["128", "192", "256"] {
-                let encrypted = aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
-                let decrypted = aes::decrypt(&encrypted, password, key_size, "ECB", "base64").unwrap();
+                let encrypted =
+                    aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
+                let decrypted =
+                    aes::decrypt(&encrypted, password, key_size, "ECB", "base64").unwrap();
                 assert_eq!(decrypted, original, "Failed with key size: {}", key_size);
             }
         }
@@ -327,20 +335,29 @@ mod tests {
         fn test_different_key_sizes_same_password() {
             let text = "Test with different key sizes";
             let password = "samepassword";
-            
+
             let encrypted_128 = aes::encrypt(text, password, "128", "ECB", "base64").unwrap();
             let encrypted_192 = aes::encrypt(text, password, "192", "ECB", "base64").unwrap();
             let encrypted_256 = aes::encrypt(text, password, "256", "ECB", "base64").unwrap();
-            
+
             // Different key sizes should produce different ciphertexts
             assert_ne!(encrypted_128, encrypted_192);
             assert_ne!(encrypted_192, encrypted_256);
             assert_ne!(encrypted_128, encrypted_256);
-            
+
             // But all should decrypt correctly
-            assert_eq!(aes::decrypt(&encrypted_128, password, "128", "ECB", "base64").unwrap(), text);
-            assert_eq!(aes::decrypt(&encrypted_192, password, "192", "ECB", "base64").unwrap(), text);
-            assert_eq!(aes::decrypt(&encrypted_256, password, "256", "ECB", "base64").unwrap(), text);
+            assert_eq!(
+                aes::decrypt(&encrypted_128, password, "128", "ECB", "base64").unwrap(),
+                text
+            );
+            assert_eq!(
+                aes::decrypt(&encrypted_192, password, "192", "ECB", "base64").unwrap(),
+                text
+            );
+            assert_eq!(
+                aes::decrypt(&encrypted_256, password, "256", "ECB", "base64").unwrap(),
+                text
+            );
         }
 
         #[test]
@@ -403,7 +420,9 @@ mod tests {
             // Should be valid base64
             assert!(crate::utils::from_base64(&encrypted).is_ok());
             // Should only contain base64 characters
-            assert!(encrypted.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
+            assert!(encrypted
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '='));
         }
 
         #[test]
@@ -411,7 +430,8 @@ mod tests {
             // Test decryption with invalid hex
             assert!(aes::decrypt("invalid_hex", "password", "256", "ECB", "hex").is_err());
             assert!(aes::decrypt("zz", "password", "192", "ECB", "hex").is_err());
-            assert!(aes::decrypt("a", "password", "128", "ECB", "hex").is_err()); // Odd length
+            assert!(aes::decrypt("a", "password", "128", "ECB", "hex").is_err());
+            // Odd length
         }
 
         #[test]
@@ -444,14 +464,14 @@ mod tests {
         fn test_wrong_key_size_for_decryption() {
             let original = "Test message";
             let password = "testpassword";
-            
+
             // Encrypt with 256-bit key
             let encrypted = aes::encrypt(original, password, "256", "ECB", "base64").unwrap();
-            
+
             // Try to decrypt with different key sizes - should fail or produce garbage
             let decrypted_128 = aes::decrypt(&encrypted, password, "128", "ECB", "base64");
             let decrypted_192 = aes::decrypt(&encrypted, password, "192", "ECB", "base64");
-            
+
             // These might succeed but produce wrong results
             if let Ok(result_128) = decrypted_128 {
                 assert_ne!(result_128, original);
@@ -459,9 +479,10 @@ mod tests {
             if let Ok(result_192) = decrypted_192 {
                 assert_ne!(result_192, original);
             }
-            
+
             // Correct key size should work
-            let decrypted_correct = aes::decrypt(&encrypted, password, "256", "ECB", "base64").unwrap();
+            let decrypted_correct =
+                aes::decrypt(&encrypted, password, "256", "ECB", "base64").unwrap();
             assert_eq!(decrypted_correct, original);
         }
 
@@ -469,12 +490,13 @@ mod tests {
         fn test_block_size_padding() {
             let password = "padtest";
             let key_size = "128";
-            
+
             // Test various input lengths to verify padding works correctly
             for length in 1..=50 {
                 let input = "a".repeat(length);
                 let encrypted = aes::encrypt(&input, password, key_size, "ECB", "base64").unwrap();
-                let decrypted = aes::decrypt(&encrypted, password, key_size, "ECB", "base64").unwrap();
+                let decrypted =
+                    aes::decrypt(&encrypted, password, key_size, "ECB", "base64").unwrap();
                 assert_eq!(decrypted, input, "Failed at length: {}", length);
             }
         }
@@ -484,14 +506,17 @@ mod tests {
             let original = "Cross encoding test";
             let password = "crosskey";
             let key_size = "256";
-            
+
             let encrypted_hex = aes::encrypt(original, password, key_size, "ECB", "hex").unwrap();
-            let encrypted_b64 = aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
-            
+            let encrypted_b64 =
+                aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
+
             // Both should decrypt to same result
-            let decrypted_from_hex = aes::decrypt(&encrypted_hex, password, key_size, "ECB", "hex").unwrap();
-            let decrypted_from_b64 = aes::decrypt(&encrypted_b64, password, key_size, "ECB", "base64").unwrap();
-            
+            let decrypted_from_hex =
+                aes::decrypt(&encrypted_hex, password, key_size, "ECB", "hex").unwrap();
+            let decrypted_from_b64 =
+                aes::decrypt(&encrypted_b64, password, key_size, "ECB", "base64").unwrap();
+
             assert_eq!(decrypted_from_hex, original);
             assert_eq!(decrypted_from_b64, original);
             assert_eq!(decrypted_from_hex, decrypted_from_b64);
