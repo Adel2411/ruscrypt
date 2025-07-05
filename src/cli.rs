@@ -161,6 +161,56 @@ pub enum Commands {
         #[command(flatten)]
         algorithm: KeygenAlgorithm,
     },
+    /// Sign data using asymmetric cryptography
+    ///
+    /// Creates digital signatures using private keys. Currently supports RSA signing
+    /// with PKCS#1 v1.5 padding scheme for educational purposes.
+    ///
+    /// # Fields
+    ///
+    /// * `algorithm` - The signing algorithm to use (see `SigningAlgorithm`)
+    ///
+    /// # Available Algorithms
+    ///
+    /// - `--rsa`: RSA digital signature
+    ///   - Uses private key for signing
+    ///   - Supports multiple input formats
+    ///   - Output in base64 or hex encoding
+    ///
+    /// # Security Note
+    ///
+    /// Digital signatures provide authentication and non-repudiation.
+    /// Keep private keys secure and use appropriate key sizes.
+    Sign {
+        /// The signing algorithm to use for the operation
+        #[command(flatten)]
+        algorithm: SigningAlgorithm,
+    },
+    /// Verify digital signatures
+    ///
+    /// Verifies digital signatures using public keys. Currently supports RSA
+    /// signature verification with PKCS#1 v1.5 padding scheme.
+    ///
+    /// # Fields
+    ///
+    /// * `algorithm` - The verification algorithm to use (see `SigningAlgorithm`)
+    ///
+    /// # Available Algorithms
+    ///
+    /// - `--rsa`: RSA signature verification
+    ///   - Uses public key for verification
+    ///   - Supports multiple input formats
+    ///   - Returns verification result (valid/invalid)
+    ///
+    /// # Security Note
+    ///
+    /// Always verify signatures from trusted sources and ensure
+    /// public key authenticity through proper key distribution.
+    Verify {
+        /// The verification algorithm to use for the operation
+        #[command(flatten)]
+        algorithm: SigningAlgorithm,
+    },
 }
 
 /// Encryption and decryption algorithm selection
@@ -297,6 +347,21 @@ pub struct ExchangeProtocol {
 #[group(required = true, multiple = false)]
 pub struct KeygenAlgorithm {
     /// RSA key pair generation
+    #[arg(long)]
+    pub rsa: bool,
+}
+
+/// Signing algorithm selection
+///
+/// Allows the user to select which algorithm to use for signing operations.
+/// Currently only RSA is supported.
+#[derive(ClapArgs, Debug, Default)]
+#[group(required = true, multiple = false)]
+pub struct SigningAlgorithm {
+    /// RSA digital signature
+    ///
+    /// Creates or verifies RSA digital signatures using PKCS#1 v1.5 padding.
+    /// Requires appropriate key sizes (2048+ bits recommended for production).
     #[arg(long)]
     pub rsa: bool,
 }
@@ -464,6 +529,37 @@ pub fn get_keyexchange_protocol_name(protocol: &ExchangeProtocol) -> &'static st
 ///
 /// ```
 pub fn get_keygen_algorithm_name(algo: &KeygenAlgorithm) -> &'static str {
+    if algo.rsa {
+        "RSA"
+    } else {
+        "Unknown"
+    }
+}
+
+/// Get the human-readable name of the selected signing algorithm
+///
+/// Converts the boolean flags in `SigningAlgorithm` to a readable string
+/// representation of the selected signing algorithm.
+///
+/// # Arguments
+///
+/// * `algo` - Reference to the `SigningAlgorithm` struct
+///
+/// # Returns
+///
+/// Returns a static string slice containing the signing algorithm name, or "Unknown"
+/// if no algorithm is selected.
+///
+/// # Examples
+///
+/// ```rust
+/// use ruscrypt::cli::{SigningAlgorithm, get_signing_algorithm_name};
+///
+/// let mut algo = SigningAlgorithm::default();
+/// algo.rsa = true;
+/// assert_eq!(get_signing_algorithm_name(&algo), "RSA");
+/// ```
+pub fn get_signing_algorithm_name(algo: &SigningAlgorithm) -> &'static str {
     if algo.rsa {
         "RSA"
     } else {

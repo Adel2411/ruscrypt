@@ -5,8 +5,7 @@
 
 ### _⚡ Lightning-fast cryptography toolkit built with Rust ⚡_
 
-![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
 [![Version](https://img.shields.io/badge/version-0.2.0-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
 
@@ -40,7 +39,7 @@ Below is a screenshot of the interactive usage of `ruscrypt`:
 
 ![ruscrypt usage screenshot](./assets/examples.png)
 
-*Example: Interactive help and encryption prompt.*
+_Example: Interactive help and encryption prompt._
 
 ---
 
@@ -69,7 +68,7 @@ Below is a screenshot of the interactive usage of `ruscrypt`:
 | 🏛️ **Classical Ciphers** | 🔐 **Stream & Block Ciphers** | 🔑 **Asymmetric Encryption** | 🔢 **Hash Functions** |
 | :----------------------: | :---------------------------: | :--------------------------: | :-------------------: |
 |      Caesar Cipher       |              RC4              |             RSA              |          MD5          |
-|     Vigenère Cipher      |         AES (128/192/256)         |        Diffie-Hellman        |         SHA-1         |
+|     Vigenère Cipher      |       AES (128/192/256)       |        Diffie-Hellman        |         SHA-1         |
 |     Playfair Cipher      |         DES (ECB/CBC)         |              -               |        SHA-256        |
 |    Rail Fence Cipher     |         AES (ECB/CBC)         |              -               |           -           |
 
@@ -91,7 +90,7 @@ sequenceDiagram
     participant Interactive
     participant Algorithm
     participant Utils
-    
+
     User->>CLI: Command with flags
     CLI->>Dispatcher: Parsed arguments
     Dispatcher->>Interactive: Prompt for inputs
@@ -188,7 +187,7 @@ cargo build --release
 # Show help information (any of these commands):
 ruscrypt
 ruscrypt --help
-ruscrypt <encrypt|decrypt|hash|exchange> --help
+ruscrypt <encrypt|decrypt|hash|exchange|keygen|sign|verify> --help
 
 # Check version
 ruscrypt --version
@@ -202,8 +201,12 @@ ruscrypt hash --<algorithm>
 # For key exchange protocols
 ruscrypt exchange --<protocol>
 
-# For key generation (new!)
-ruscrypt keygen --rsa
+# For key generation
+ruscrypt keygen --<algorithm>
+
+# For digital signatures (new!)
+ruscrypt sign --<algorithm>
+ruscrypt verify --<algorithm>
 ```
 
 ### Interactive Experience
@@ -237,6 +240,21 @@ Select RSA key size: 1024
 Select key output format: n:e / PEM
 Public Key: ...
 Private Key: ...
+
+# Example: RSA digital signature (new!)
+$ ruscrypt sign --rsa
+Enter message to sign: This is a test message
+Enter private key (n:d format or PEM): 12345:67890
+Select output encoding: base64
+Digital signature: SGVsbG8gV29ybGQ=
+
+# Example: RSA signature verification (new!)
+$ ruscrypt verify --rsa
+Enter original message: This is a test message
+Enter signature to verify: SGVsbG8gV29ybGQ=
+Enter public key (n:e format or PEM): 12345:65537
+Select signature encoding: base64
+✅ VALID: The signature is authentic!
 ```
 
 ---
@@ -429,15 +447,32 @@ ruscrypt decrypt --rsa
 # - Private key (format: n:d or PEM)
 # - Input encoding (base64/hex)
 
-# Key generation (new!)
+# Key generation
 ruscrypt keygen --rsa
 # Prompts:
 # - Key size (512/1024/2048)
 # - Output format (n:e or PEM)
 # Prints public and private key in selected format
+
+# Digital signature (new!)
+ruscrypt sign --rsa
+# Prompts:
+# - Message to sign
+# - Private key (format: n:d or PEM)
+# - Output encoding (base64/hex)
+# Creates digital signature for message
+
+# Signature verification (new!)
+ruscrypt verify --rsa
+# Prompts:
+# - Original message
+# - Signature to verify
+# - Public key (format: n:e or PEM)
+# - Signature encoding (base64/hex)
+# Verifies signature authenticity
 ```
 
-**Use case**: Small data encryption and digital signatures.
+**Use case**: Small data encryption, digital signatures, and authentication.
 
 </details>
 
@@ -594,6 +629,28 @@ Select Diffie-Hellman operation: Interactive Simulation (Alice & Bob)
   ✅ SUCCESS: Both parties have the same shared secret!
 ```
 
+### RSA Digital Signature Examples
+
+```bash
+# 🔏 RSA digital signature creation
+$ ruscrypt sign --rsa
+Enter message to sign: This document is authentic
+Enter private key (n:d format or PEM): 12345678901234567890:98765432109876543210
+Select output encoding: base64
+✅ Digital signature created successfully!
+📝 Original message: This document is authentic
+🔏 Digital signature (BASE64): SGVsbG8gV29ybGQ=...
+
+# 🔍 RSA signature verification
+$ ruscrypt verify --rsa
+Enter original message: This document is authentic
+Enter signature to verify: SGVsbG8gV29ybGQ=...
+Enter public key (n:e format or PEM): 12345678901234567890:65537
+Select signature encoding: base64
+✅ VALID: The signature is authentic!
+🔒 The message integrity is verified and the signature is genuine.
+```
+
 ---
 
 ## 🧪 Testing
@@ -606,7 +663,7 @@ cargo test
 
 # ⚡ Run specific test files
 cargo test classical      # Test classical ciphers
-cargo test stream        # Test stream ciphers  
+cargo test stream        # Test stream ciphers
 cargo test block         # Test block ciphers
 cargo test hash          # Test hash functions
 cargo test asym          # Test asymmetric crypto
@@ -642,6 +699,13 @@ ruscrypt encrypt --des
 # Test asymmetric encryption
 ruscrypt encrypt --rsa
 ruscrypt exchange --dh
+
+# Test key generation
+ruscrypt keygen --rsa
+
+# Test digital signatures (new!)
+ruscrypt sign --rsa
+ruscrypt verify --rsa
 
 # Test hash functions
 ruscrypt hash --md5

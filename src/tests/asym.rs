@@ -301,10 +301,10 @@ mod tests {
 
     #[cfg(test)]
     mod rsa_tests {
-        use crate::asym::rsa::{
+        use crate::{asym::rsa::{
             decrypt, encrypt, export_private_key_pem, export_public_key_pem, generate_key_pair,
-            import_private_key_pem, rsa_decrypt, rsa_encrypt, RSAPrivateKey,
-        };
+            import_private_key_pem, rsa_decrypt, rsa_encrypt, rsa_sign, rsa_verify, sign, verify, RSAPrivateKey,
+        }};
 
         #[test]
         fn test_key_generation_512() {
@@ -535,6 +535,7 @@ mod tests {
             let d = parts[1].parse::<u64>().unwrap();
             let pem = export_private_key_pem(&RSAPrivateKey { n, d });
             let decrypted = decrypt(&encrypted, &pem, "base64").unwrap();
+
             assert_eq!(message, decrypted);
         }
 
@@ -562,6 +563,284 @@ mod tests {
             let pem = export_public_key_pem(&key_pair.public_key);
             assert!(pem.starts_with("-----BEGIN RSA PUBLIC KEY-----"));
             assert!(pem.ends_with("-----END RSA PUBLIC KEY-----"));
+        }
+
+        #[test]
+        fn test_rsa_sign_verify_basic() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = b"Hello, RSA signature!";
+
+            let signature = rsa_sign(message, &key_pair.private_key).unwrap();
+            let is_valid = rsa_verify(message, &signature, &key_pair.public_key).unwrap();
+
+            assert!(is_valid);
+        }
+
+        #[test]
+        fn test_rsa_sign_verify_different_messages() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message1 = b"First message";
+            let message2 = b"Second message";
+
+            let signature1 = rsa_sign(message1, &key_pair.private_key).unwrap();
+            let signature2 = rsa_sign(message2, &key_pair.private_key).unwrap();
+
+            // Signatures should be different for different messages
+            assert_ne!(signature1, signature2);
+
+            // Each signature should verify with its corresponding message
+            assert!(rsa_verify(message1, &signature1, &key_pair.public_key).unwrap());
+            assert!(rsa_verify(message2, &signature2, &key_pair.public_key).unwrap());
+
+            // Cross-verification should fail
+            assert!(!rsa_verify(message1, &signature2, &key_pair.public_key).unwrap());
+            assert!(!rsa_verify(message2, &signature1, &key_pair.public_key).unwrap());
+        }
+
+        #[test]
+        fn test_rsa_sign_verify_empty_message() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = b"";
+
+            let signature = rsa_sign(message, &key_pair.private_key).unwrap();
+            let is_valid = rsa_verify(message, &signature, &key_pair.public_key).unwrap();
+
+            assert!(is_valid);
+        }
+
+        #[test]
+        fn test_rsa_sign_verify_unicode_message() {
+            // Try multiple times to account for prime generation issues
+            for _ in 0..5 {
+                if let Ok(key_pair) = generate_key_pair(1024) {
+                    let message = "Hello 世界! 🔐 Testing unicode signatures".as_bytes();
+
+                    let signature = rsa_sign(message, &key_pair.private_key).unwrap();
+                    let is_valid = rsa_verify(message, &signature, &key_pair.public_key).unwrap();
+
+                    assert!(is_valid);
+                    return; // Test passed
+                }
+            }
+            panic!("Could not generate key pair after 5 attempts");
+        }
+
+        #[test]
+        fn test_rsa_sign_verify_wrong_key() {
+            let key_pair1 = generate_key_pair(512).unwrap();
+            let key_pair2 = generate_key_pair(512).unwrap();
+            let message = b"Test message";
+
+            let signature = rsa_sign(message, &key_pair1.private_key).unwrap();
+            
+            // Verification with wrong public key should fail
+            let is_valid = rsa_verify(message, &signature, &key_pair2.public_key).unwrap();
+            assert!(!is_valid);
+        }
+
+        #[test]
+        fn test_cli_sign_verify_base64() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test CLI signing";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            let signature = sign(message, &private_key_str, "base64").unwrap();
+            let is_valid = verify(message, &signature, &public_key_str, "base64").unwrap();
+
+            assert!(is_valid);
+        }
+
+        #[test]
+        fn test_cli_sign_verify_hex() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test CLI signing hex";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            let signature = sign(message, &private_key_str, "hex").unwrap();
+            let is_valid = verify(message, &signature, &public_key_str, "hex").unwrap();
+
+            assert!(is_valid);
+            
+            // Verify hex format
+            assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
+            assert_eq!(signature.len() % 2, 0);
+        }
+
+        #[test]
+        fn test_cli_sign_verify_pem_private_key() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test PEM private key signing";
+            let private_key_pem = export_private_key_pem(&key_pair.private_key);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            let signature = sign(message, &private_key_pem, "base64").unwrap();
+            let is_valid = verify(message, &signature, &public_key_str, "base64").unwrap();
+
+            assert!(is_valid);
+        }
+
+        #[test]
+        fn test_cli_sign_verify_pem_public_key() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test PEM public key verification";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_pem = export_public_key_pem(&key_pair.public_key);
+
+            let signature = sign(message, &private_key_str, "base64").unwrap();
+            let is_valid = verify(message, &signature, &public_key_pem, "base64").unwrap();
+
+            assert!(is_valid);
+        }
+
+        #[test]
+        fn test_cli_sign_verify_both_pem() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test both PEM formats";
+            let private_key_pem = export_private_key_pem(&key_pair.private_key);
+            let public_key_pem = export_public_key_pem(&key_pair.public_key);
+
+            let signature = sign(message, &private_key_pem, "base64").unwrap();
+            let is_valid = verify(message, &signature, &public_key_pem, "base64").unwrap();
+
+            assert!(is_valid);
+        }
+
+        #[test]
+        fn test_sign_invalid_private_key_format() {
+            let message = "Test message";
+            
+            // Invalid format - not n:d
+            assert!(sign(message, "invalid", "base64").is_err());
+            
+            // Invalid format - wrong separator
+            assert!(sign(message, "123-456", "base64").is_err());
+            
+            // Invalid format - non-numeric
+            assert!(sign(message, "abc:def", "base64").is_err());
+        }
+
+        #[test]
+        fn test_verify_invalid_public_key_format() {
+            let message = "Test message";
+            let signature = "dGVzdA=="; // Valid base64
+            
+            // Invalid format - not n:e
+            assert!(verify(message, signature, "invalid", "base64").is_err());
+            
+            // Invalid format - wrong separator
+            assert!(verify(message, signature, "123-456", "base64").is_err());
+            
+            // Invalid format - non-numeric
+            assert!(verify(message, signature, "abc:def", "base64").is_err());
+        }
+
+        #[test]
+        fn test_sign_verify_invalid_encoding() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test message";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            // Invalid encoding for signing
+            assert!(sign(message, &private_key_str, "invalid").is_err());
+            
+            // Invalid encoding for verification
+            let signature = sign(message, &private_key_str, "base64").unwrap();
+            assert!(verify(message, &signature, &public_key_str, "invalid").is_err());
+        }
+
+        #[test]
+        fn test_verify_invalid_signature_format() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test message";
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            // Invalid base64 signature
+            assert!(verify(message, "not_base64!", &public_key_str, "base64").is_err());
+            
+            // Invalid hex signature (odd length)
+            assert!(verify(message, "abc", &public_key_str, "hex").is_err());
+            
+            // Invalid hex signature (non-hex chars)
+            assert!(verify(message, "abcdefgh", &public_key_str, "hex").is_err());
+        }
+
+        #[test]
+        fn test_sign_verify_tampered_message() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let original_message = "Original message";
+            let tampered_message = "Tampered message";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            let signature = sign(original_message, &private_key_str, "base64").unwrap();
+            
+            // Verification should fail with tampered message
+            let is_valid = verify(tampered_message, &signature, &public_key_str, "base64").unwrap();
+            assert!(!is_valid);
+        }
+
+        #[test]
+        fn test_sign_verify_tampered_signature() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test message";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            let mut signature = sign(message, &private_key_str, "base64").unwrap();
+            
+            // Tamper with the signature
+            signature.push('X');
+            
+            // Verification should fail with tampered signature
+            let result = verify(message, &signature, &public_key_str, "base64");
+            assert!(result.is_err() || !result.unwrap());
+        }
+
+        #[test]
+        fn test_sign_verify_consistency() {
+            // Test that signing the same message multiple times produces consistent results
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Consistency test message";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
+
+            let signature1 = sign(message, &private_key_str, "base64").unwrap();
+            let signature2 = sign(message, &private_key_str, "base64").unwrap();
+
+            // RSA signatures should be deterministic (same message, same key = same signature)
+            assert_eq!(signature1, signature2);
+
+            // Both signatures should verify
+            assert!(verify(message, &signature1, &public_key_str, "base64").unwrap());
+            assert!(verify(message, &signature2, &public_key_str, "base64").unwrap());
+        }
+
+        #[test]
+        fn test_sign_verify_invalid_pem_private_key() {
+            let message = "Test message";
+            
+            // Invalid PEM format
+            let invalid_pem = "-----BEGIN RSA PRIVATE KEY-----\ninvalid_base64\n-----END RSA PRIVATE KEY-----";
+            assert!(sign(message, invalid_pem, "base64").is_err());
+            
+            // Missing PEM headers
+            let missing_headers = "some_random_data";
+            assert!(sign(message, missing_headers, "base64").is_err());
+        }
+
+        #[test]
+        fn test_sign_verify_invalid_pem_public_key() {
+            let key_pair = generate_key_pair(512).unwrap();
+            let message = "Test message";
+            let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
+            let signature = sign(message, &private_key_str, "base64").unwrap();
+            
+            // Invalid PEM format
+            let invalid_pem = "-----BEGIN RSA PUBLIC KEY-----\ninvalid_base64\n-----END RSA PUBLIC KEY-----";
+            assert!(verify(message, &signature, invalid_pem, "base64").is_err());
         }
     }
 }

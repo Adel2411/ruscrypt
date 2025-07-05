@@ -715,3 +715,303 @@ fn mod_pow(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
     result
 }
 
+/// High-level RSA signing function for CLI use.
+///
+/// This function takes a message and a private key, then creates a digital signature
+/// using RSA with PKCS#1 v1.5 padding scheme (simplified for educational purposes).
+///
+/// # Arguments
+///
+/// * `data` - The message to sign
+/// * `private_key_str` - Private key in "n:d" format or PEM format
+/// * `encoding` - Output encoding: "base64" or "hex"
+///
+/// # Returns
+///
+/// Returns the digital signature as an encoded string.
+///
+/// # Examples
+///
+/// ```rust
+/// use ruscrypt::asym::rsa;
+///
+/// let message = "Hello, World!";
+/// let private_key = "12345:6789"; // n:d format
+/// let signature = rsa::sign(message, private_key, "base64").unwrap();
+/// ```
+pub fn sign(data: &str, private_key_str: &str, encoding: &str) -> Result<String> {
+    let private_key = if private_key_str
+        .trim_start()
+        .starts_with("-----BEGIN RSA PRIVATE KEY-----")
+    {
+        import_private_key_pem(private_key_str)?
+    } else {
+        parse_private_key(private_key_str)?
+    };
+
+    let signature_data = rsa_sign(data.as_bytes(), &private_key)?;
+
+    let signature_string = match encoding.to_lowercase().as_str() {
+        "base64" => {
+            let bytes: Vec<u8> = signature_data
+                .iter()
+                .flat_map(|&num| num.to_be_bytes())
+                .collect();
+            to_base64(&bytes)
+        }
+        "hex" => {
+            let bytes: Vec<u8> = signature_data
+                .iter()
+                .flat_map(|&num| num.to_be_bytes())
+                .collect();
+            to_hex(&bytes)
+        }
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported encoding: {}. Use 'base64' or 'hex'",
+                encoding
+            ))
+        }
+    };
+
+    Ok(signature_string)
+}
+
+/// High-level RSA signature verification function for CLI use.
+///
+/// This function takes a message, signature, and public key, then verifies
+/// the digital signature using RSA with PKCS#1 v1.5 padding scheme.
+///
+/// # Arguments
+///
+/// * `data` - The original message that was signed
+/// * `signature` - The digital signature (in specified encoding)
+/// * `public_key_str` - Public key in "n:e" format or PEM format
+/// * `encoding` - Input encoding: "base64" or "hex"
+///
+/// # Returns
+///
+/// Returns true if the signature is valid, false otherwise.
+///
+/// # Examples
+///
+/// ```rust
+/// use ruscrypt::asym::rsa;
+///
+/// let message = "Hello, World!";
+/// let signature = "..."; // Base64 signature
+/// let public_key = "12345:65537"; // n:e format
+/// let is_valid = rsa::verify(message, signature, public_key, "base64").unwrap();
+/// ```
+pub fn verify(data: &str, signature: &str, public_key_str: &str, encoding: &str) -> Result<bool> {
+    let public_key = if public_key_str
+        .trim_start()
+        .starts_with("-----BEGIN RSA PUBLIC KEY-----")
+    {
+        // Parse PEM public key
+        let lines: Vec<&str> = public_key_str
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .collect();
+        let start = lines
+            .iter()
+            .position(|l| l.starts_with("-----BEGIN RSA PUBLIC KEY-----"));
+        let end = lines
+            .iter()
+            .position(|l| l.starts_with("-----END RSA PUBLIC KEY-----"));
+        if let (Some(start), Some(end)) = (start, end) {
+            let b64 = lines[start + 1..end].join("");
+            let decoded =
+                from_base64(&b64).map_err(|_| anyhow::anyhow!("Invalid base64 in PEM"))?;
+            let key_str = String::from_utf8(decoded)
+                .map_err(|_| anyhow::anyhow!("Invalid UTF-8 in PEM key data"))?;
+            let parts: Vec<&str> = key_str.split(':').collect();
+            if parts.len() != 2 {
+                return Err(anyhow::anyhow!("Invalid PEM public key format"));
+            }
+            let n = parts[0]
+                .parse::<u64>()
+                .map_err(|_| anyhow::anyhow!("Invalid modulus in PEM public key"))?;
+            let e = parts[1]
+                .parse::<u64>()
+                .map_err(|_| anyhow::anyhow!("Invalid exponent in PEM public key"))?;
+            RSAPublicKey { n, e }
+        } else {
+            return Err(anyhow::anyhow!("Invalid PEM format for RSA public key"));
+        }
+    } else {
+        // Parse as "n:e" format
+        let parts: Vec<&str> = public_key_str.split(':').collect();
+        if parts.len() != 2 {
+            return Err(anyhow::anyhow!(
+                "Invalid public key format. Expected 'n:e'"
+            ));
+        }
+
+        let n = parts[0]
+            .parse::<u64>()
+            .map_err(|_| anyhow::anyhow!("Invalid modulus in public key"))?;
+        let e = parts[1]
+            .parse::<u64>()
+            .map_err(|_| anyhow::anyhow!("Invalid exponent in public key"))?;
+
+        RSAPublicKey { n, e }
+    };
+
+    let signature_nums = match encoding.to_lowercase().as_str() {
+        "base64" => {
+            let bytes = from_base64(signature)?;
+            if bytes.len() % 8 != 0 {
+                return Err(anyhow::anyhow!("Invalid base64 signature length"));
+            }
+            bytes
+                .chunks_exact(8)
+                .map(|chunk| {
+                    u64::from_be_bytes([
+                        chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6],
+                        chunk[7],
+                    ])
+                })
+                .collect::<Vec<u64>>()
+        }
+        "hex" => {
+            let bytes = from_hex(signature)?;
+            if bytes.len() % 8 != 0 {
+                return Err(anyhow::anyhow!("Invalid hex signature length"));
+            }
+            bytes
+                .chunks_exact(8)
+                .map(|chunk| {
+                    u64::from_be_bytes([
+                        chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6],
+                        chunk[7],
+                    ])
+                })
+                .collect()
+        }
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported encoding: {}. Use 'base64' or 'hex'",
+                encoding
+            ))
+        }
+    };
+
+    rsa_verify(data.as_bytes(), &signature_nums, &public_key)
+}
+
+/// Creates an RSA digital signature using the private key.
+///
+/// This function implements a simplified RSA signature scheme for educational purposes.
+/// In production, proper padding schemes like PKCS#1 v1.5 or PSS should be used.
+///
+/// # Arguments
+///
+/// * `message` - Raw bytes to sign
+/// * `private_key` - RSA private key for signing
+///
+/// # Returns
+///
+/// Returns a vector of signature blocks as u64 values.
+///
+/// # Examples
+///
+/// ```rust
+/// use ruscrypt::asym::rsa;
+///
+/// let key_pair = rsa::generate_key_pair(512).unwrap();
+/// let signature = rsa::rsa_sign(b"Hello", &key_pair.private_key).unwrap();
+/// let is_valid = rsa::rsa_verify(b"Hello", &signature, &key_pair.public_key).unwrap();
+/// assert!(is_valid);
+/// ```
+pub fn rsa_sign(message: &[u8], private_key: &RSAPrivateKey) -> Result<Vec<u64>> {
+    let mut signature = Vec::new();
+    let block_size = calculate_block_size(private_key.n);
+
+    for chunk in message.chunks(block_size) {
+        // Convert bytes to number
+        let mut m = 0u64;
+        for &byte in chunk {
+            m = m * 256 + byte as u64;
+        }
+
+        if m >= private_key.n {
+            return Err(anyhow::anyhow!("Message block too large for key"));
+        }
+
+        // Sign: s = m^d mod n (same as decryption operation)
+        let s = mod_pow(m, private_key.d, private_key.n);
+        signature.push(s);
+    }
+
+    Ok(signature)
+}
+
+/// Verifies an RSA digital signature using the public key.
+///
+/// This function implements a simplified RSA signature verification scheme
+/// for educational purposes. In production, proper padding schemes should be used.
+///
+/// # Arguments
+///
+/// * `message` - Original message that was signed
+/// * `signature` - Digital signature as vector of u64 blocks
+/// * `public_key` - RSA public key for verification
+///
+/// # Returns
+///
+/// Returns true if the signature is valid, false otherwise.
+///
+/// # Examples
+///
+/// ```rust
+/// use ruscrypt::asym::rsa;
+///
+/// let key_pair = rsa::generate_key_pair(1024).unwrap();
+/// let signature = rsa::rsa_sign(b"Test message", &key_pair.private_key).unwrap();
+/// let is_valid = rsa::rsa_verify(b"Test message", &signature, &key_pair.public_key).unwrap();
+/// assert!(is_valid);
+/// ```
+pub fn rsa_verify(message: &[u8], signature: &[u64], public_key: &RSAPublicKey) -> Result<bool> {
+    let mut recovered_message = Vec::new();
+    let block_size = calculate_block_size(public_key.n);
+
+    for &s in signature {
+        // Verify: m = s^e mod n (same as encryption operation)
+        let m = mod_pow(s, public_key.e, public_key.n);
+
+        // Convert number back to bytes
+        let mut bytes = Vec::new();
+        let mut temp = m;
+
+        if temp == 0 {
+            bytes.push(0);
+        } else {
+            while temp > 0 {
+                bytes.push((temp % 256) as u8);
+                temp /= 256;
+            }
+            bytes.reverse();
+        }
+
+        // Pad to block size if necessary
+        while bytes.len() < block_size && !bytes.is_empty() && m != 0 {
+            bytes.insert(0, 0);
+        }
+
+        recovered_message.extend(bytes);
+    }
+
+    // Remove padding zeros more carefully
+    while recovered_message.first() == Some(&0) && recovered_message.len() > 1 {
+        recovered_message.remove(0);
+    }
+    while recovered_message.last() == Some(&0) && recovered_message.len() > 1 {
+        recovered_message.pop();
+    }
+
+    // Compare recovered message with original
+    Ok(recovered_message == message)
+}
+

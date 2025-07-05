@@ -313,4 +313,3 @@ pub fn remove_padding(data: &[u8]) -> Result<Vec<u8>> {
 
     Ok(data[..data.len() - padding_length].to_vec())
 }
-

@@ -255,3 +255,10 @@ pub fn prompt_for_multiline_input(prompt: &str) -> Result<String> {
     }
     Ok(lines.join("\n"))
 }
+
+/// Prompt user for encoding format selection
+///
+/// Returns either "base64" or "hex" as a string.
+pub fn prompt_for_encoding(prompt: &str) -> Result<String> {
+    prompt_for_choices(prompt, &["base64", "hex"])
+}

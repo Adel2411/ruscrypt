@@ -24,47 +24,18 @@ use crate::asym::{dh, rsa};
 use crate::block::{aes, des};
 use crate::classical::{caesar, playfair, rail_fence, vigenere};
 use crate::cli::{
-    Args, Commands, EncryptionAlgorithm, ExchangeProtocol, HashAlgorithm, KeygenAlgorithm,
+    Commands, EncryptionAlgorithm, ExchangeProtocol, HashAlgorithm, KeygenAlgorithm,
+    SigningAlgorithm,
 };
 use crate::hash::{md5, sha1, sha256};
-use crate::interactive;
 use crate::stream::rc4;
+use crate::{cli, interactive};
 
-/// Main command dispatcher function
-///
-/// This is the primary entry point for command execution. It displays the parsed
-/// command information to the user and then routes to the appropriate handler
-/// function based on the command type.
-///
-/// # Arguments
-///
-/// * `args` - Parsed command-line arguments containing the command and parameters
-///
-/// # Returns
-///
-/// Returns `Ok(())` on successful execution, or an error if the operation fails.
-///
-/// # Examples
-///
-/// ```rust
-/// use ruscrypt::{cli, dispatcher};
-///
-/// let args = cli::parse_args();
-/// dispatcher::dispatch_command(args)?;
-/// ```
-///
-/// # Errors
-///
-/// This function can return errors from:
-/// - Invalid algorithm selection
-/// - User input validation failures
-/// - Cryptographic operation failures
-/// - I/O errors during interactive prompts
-pub fn dispatch_command(args: Args) -> Result<()> {
-    // Original command dispatch logic
+/// Dispatch and execute the appropriate command based on parsed CLI arguments
+pub fn dispatch_command(args: cli::Args) -> Result<()> {
     match args.command {
         Commands::Encrypt { algorithm } => {
-            let algo_name = crate::cli::get_algorithm_name(&algorithm);
+            let algo_name = cli::get_algorithm_name(&algorithm);
             println!(
                 "{} {}",
                 "🔒 Encrypting with".green(),
@@ -73,7 +44,7 @@ pub fn dispatch_command(args: Args) -> Result<()> {
             handle_encryption(algorithm)?;
         }
         Commands::Decrypt { algorithm } => {
-            let algo_name = crate::cli::get_algorithm_name(&algorithm);
+            let algo_name = cli::get_algorithm_name(&algorithm);
             println!(
                 "{} {}",
                 "🔓 Decrypting with".blue(),
@@ -82,7 +53,7 @@ pub fn dispatch_command(args: Args) -> Result<()> {
             handle_decryption(algorithm)?;
         }
         Commands::Hash { algorithm } => {
-            let algo_name = crate::cli::get_hash_algorithm_name(&algorithm);
+            let algo_name = cli::get_hash_algorithm_name(&algorithm);
             println!(
                 "{} {}",
                 "🔢 Hashing with".magenta(),
@@ -91,7 +62,7 @@ pub fn dispatch_command(args: Args) -> Result<()> {
             handle_hashing(algorithm)?;
         }
         Commands::Exchange { protocol } => {
-            let protocol_name = crate::cli::get_keyexchange_protocol_name(&protocol);
+            let protocol_name = cli::get_keyexchange_protocol_name(&protocol);
             println!(
                 "{} {}",
                 "🔑 Key Exchange with".purple(),
@@ -100,13 +71,29 @@ pub fn dispatch_command(args: Args) -> Result<()> {
             handle_key_exchange(protocol)?;
         }
         Commands::Keygen { algorithm } => {
-            let algo_name = crate::cli::get_keygen_algorithm_name(&algorithm);
+            let algo_name = cli::get_keygen_algorithm_name(&algorithm);
             println!(
                 "{} {}",
                 "🔑 Generating key for".cyan(),
                 algo_name.yellow().bold()
             );
             handle_keygen(algorithm)?;
+        }
+        Commands::Sign { algorithm } => {
+            let algo_name = cli::get_signing_algorithm_name(&algorithm);
+            println!("✍️ Signing with {} algorithm...", algo_name);
+
+            if algorithm.rsa {
+                handle_sign(algorithm)?;
+            }
+        }
+        Commands::Verify { algorithm } => {
+            let algo_name = cli::get_signing_algorithm_name(&algorithm);
+            println!("🔍 Verifying {} signature...", algo_name);
+
+            if algorithm.rsa {
+                handle_verify(algorithm)?;
+            }
         }
     }
 
@@ -488,7 +475,7 @@ fn handle_key_exchange(protocol: ExchangeProtocol) -> Result<()> {
 /// - I/O errors during prompts
 fn handle_keygen(algorithm: KeygenAlgorithm) -> Result<()> {
     if algorithm.rsa {
-        let key_size =
+        let key_size: String =
             interactive::prompt_for_choices("Select RSA key size", &["512", "1024", "2048"])?;
         let format = interactive::prompt_for_key_output_format()?;
         let key_size_num = key_size
@@ -501,5 +488,79 @@ fn handle_keygen(algorithm: KeygenAlgorithm) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow::anyhow!("Unknown key generation algorithm"))
+    }
+}
+
+/// Handle RSA signing operations
+pub fn handle_sign(algorithm: SigningAlgorithm) -> Result<()> {
+    if algorithm.rsa {
+        println!("📝 RSA Digital Signature");
+        println!("========================");
+
+        let data = interactive::prompt_for_input("Enter message to sign")?;
+        let private_key =
+            interactive::prompt_for_multiline_input("Enter private key (n:d format or PEM)")?;
+        let encoding = interactive::prompt_for_encoding("Select output encoding")?;
+
+        match rsa::sign(&data, &private_key, &encoding) {
+            Ok(signature) => {
+                println!("\n✅ Digital signature created successfully!");
+                println!("📝 Original message: {}", data);
+                println!(
+                    "🔏 Digital signature ({}): {}",
+                    encoding.to_uppercase(),
+                    signature
+                );
+                println!("\n💡 Save this signature to verify the message authenticity later.");
+            }
+            Err(e) => {
+                eprintln!("❌ Signing failed: {}", e);
+                return Err(e);
+            }
+        }
+
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Unknown signing algorithm"))
+    }
+}
+
+/// Handle RSA signature verification operations
+pub fn handle_verify(algorithm: SigningAlgorithm) -> Result<()> {
+    if algorithm.rsa {
+        println!("🔍 RSA Signature Verification");
+        println!("=============================");
+
+        let data = interactive::prompt_for_input("Enter original message")?;
+        let signature = interactive::prompt_for_input("Enter signature to verify")?;
+        let public_key =
+            interactive::prompt_for_multiline_input("Enter public key (n:e format or PEM)")?;
+        let encoding = interactive::prompt_for_encoding("Select signature encoding")?;
+
+        match rsa::verify(&data, &signature, &public_key, &encoding) {
+            Ok(is_valid) => {
+                println!("\n🔍 Signature verification result:");
+                println!("📝 Original message: {}", data);
+                println!("🔏 Signature: {}...", &signature[..signature.len().min(20)]);
+
+                if is_valid {
+                    println!("✅ VALID: The signature is authentic!");
+                    println!("🔒 The message integrity is verified and the signature is genuine.");
+                } else {
+                    println!("❌ INVALID: The signature verification failed!");
+                    println!(
+                        "⚠️  The message may have been tampered with or the signature is forged."
+                    );
+                }
+            }
+            Err(e) => {
+                eprintln!("❌ Verification failed: {}", e);
+                return Err(e);
+            }
+        }
+
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("Unknown verification algorithm"))
     }
 }
