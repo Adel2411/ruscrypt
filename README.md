@@ -11,7 +11,7 @@
 
 **Modern cryptographic operations made simple and blazingly fast**
 
-[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [💡 Examples](#-examples) • [🤝 Contributing](#-contributing) • [📚 API Docs](https://docs.rs/ruscrypt/0.1.0/ruscrypt/)
+[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [💡 Examples](#-examples) • [🤝 Contributing](#-contributing) • [📚 API Docs](https://docs.rs/ruscrypt)
 
 </div>
 
