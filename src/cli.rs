@@ -33,7 +33,7 @@ use clap::{Args as ClapArgs, Parser, Subcommand};
 #[derive(Parser, Debug)]
 #[command(name = "ruscrypt")]
 #[command(about = "⚡ Lightning-fast cryptography toolkit built with Rust ⚡")]
-#[command(version = "0.2.0")]
+#[command(version = "0.3.0")]
 #[command(author = "Adel2411")]
 pub struct Args {
     /// The subcommand to execute
