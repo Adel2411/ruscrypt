@@ -6,8 +6,9 @@
 ### _⚡ Lightning-fast cryptography toolkit built with Rust ⚡_
 
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
-[![Version](https://img.shields.io/badge/version-0.3.0-blue?style=for-the-badge)](https://github.com/Adel2411/ruscrypt)
+[![Crates.io](https://img.shields.io/crates/v/ruscrypt?style=for-the-badge)](https://crates.io/crates/ruscrypt)
+[![Downloads](https://img.shields.io/crates/d/ruscrypt?style=for-the-badge)](https://crates.io/crates/ruscrypt)
+[![Documentation](https://img.shields.io/docsrs/ruscrypt?style=for-the-badge)](https://docs.rs/ruscrypt)
 
 **Modern cryptographic operations made simple and blazingly fast**
 
