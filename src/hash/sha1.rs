@@ -215,7 +215,7 @@ fn sha1_hash(input: &[u8]) -> [u8; 20] {
         let mut e = h[4];
 
         // Main loop
-        for i in w {
+        for (i, &wi) in w.iter().enumerate() {
             let (f, k) = match i {
                 0..=19 => ((b & c) | (!b & d), 0x5A827999),
                 20..=39 => (b ^ c ^ d, 0x6ED9EBA1),
@@ -229,7 +229,7 @@ fn sha1_hash(input: &[u8]) -> [u8; 20] {
                 .wrapping_add(f)
                 .wrapping_add(e)
                 .wrapping_add(k)
-                .wrapping_add(i);
+                .wrapping_add(wi);
 
             e = d;
             d = c;
