@@ -244,7 +244,7 @@ pub fn decrypt(data: &str, private_key_str: &str, encoding: &str) -> Result<Stri
     let ciphertext_nums = match encoding.to_lowercase().as_str() {
         "base64" => {
             let bytes = from_base64(data)?;
-            if bytes.len() % 8 != 0 {
+            if !bytes.len().is_multiple_of(8) {
                 return Err(anyhow::anyhow!("Invalid base64 data length"));
             }
             bytes
@@ -259,7 +259,7 @@ pub fn decrypt(data: &str, private_key_str: &str, encoding: &str) -> Result<Stri
         }
         "hex" => {
             let bytes = from_hex(data)?;
-            if bytes.len() % 8 != 0 {
+            if !bytes.len().is_multiple_of(8) {
                 return Err(anyhow::anyhow!("Invalid hex data length"));
             }
             bytes
@@ -294,20 +294,14 @@ pub fn export_public_key_ne(public_key: &RSAPublicKey) -> String {
 pub fn export_public_key_pem(public_key: &RSAPublicKey) -> String {
     let key_data = format!("{}:{}", public_key.n, public_key.e);
     let b64 = to_base64(key_data.as_bytes());
-    format!(
-        "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----",
-        b64
-    )
+    format!("-----BEGIN RSA PUBLIC KEY-----\n{b64}\n-----END RSA PUBLIC KEY-----")
 }
 
 /// Exports the RSA private key in a simple PEM-like format (not PKCS#8).
 pub fn export_private_key_pem(private_key: &RSAPrivateKey) -> String {
     let key_data = format!("{}:{}", private_key.n, private_key.d);
     let b64 = to_base64(key_data.as_bytes());
-    format!(
-        "-----BEGIN RSA PRIVATE KEY-----\n{}\n-----END RSA PRIVATE KEY-----",
-        b64
-    )
+    format!("-----BEGIN RSA PRIVATE KEY-----\n{b64}\n-----END RSA PRIVATE KEY-----")
 }
 
 /// Imports an RSA private key from a simple PEM-like format.
@@ -607,7 +601,7 @@ fn generate_prime(bit_size: u32) -> Result<u64> {
         // Increased attempts and better distribution
         // Use better distribution to avoid identical primes
         let candidate = rng.random_range(min + attempt..=max - attempt);
-        if candidate % 2 == 0 {
+        if candidate.is_multiple_of(2) {
             continue; // Skip even numbers
         }
         if is_prime(candidate) {
@@ -628,13 +622,13 @@ fn is_prime(n: u64) -> bool {
     if n == 2 {
         return true;
     }
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         return false;
     }
 
     let sqrt_n = (n as f64).sqrt() as u64 + 1;
     for i in (3..=sqrt_n).step_by(2) {
-        if n % i == 0 {
+        if n.is_multiple_of(i) {
             return false;
         }
     }
@@ -844,9 +838,7 @@ pub fn verify(data: &str, signature: &str, public_key_str: &str, encoding: &str)
         // Parse as "n:e" format
         let parts: Vec<&str> = public_key_str.split(':').collect();
         if parts.len() != 2 {
-            return Err(anyhow::anyhow!(
-                "Invalid public key format. Expected 'n:e'"
-            ));
+            return Err(anyhow::anyhow!("Invalid public key format. Expected 'n:e'"));
         }
 
         let n = parts[0]
@@ -862,7 +854,7 @@ pub fn verify(data: &str, signature: &str, public_key_str: &str, encoding: &str)
     let signature_nums = match encoding.to_lowercase().as_str() {
         "base64" => {
             let bytes = from_base64(signature)?;
-            if bytes.len() % 8 != 0 {
+            if !bytes.len().is_multiple_of(8) {
                 return Err(anyhow::anyhow!("Invalid base64 signature length"));
             }
             bytes
@@ -877,7 +869,7 @@ pub fn verify(data: &str, signature: &str, public_key_str: &str, encoding: &str)
         }
         "hex" => {
             let bytes = from_hex(signature)?;
-            if bytes.len() % 8 != 0 {
+            if !bytes.len().is_multiple_of(8) {
                 return Err(anyhow::anyhow!("Invalid hex signature length"));
             }
             bytes
@@ -1014,4 +1006,3 @@ pub fn rsa_verify(message: &[u8], signature: &[u64], public_key: &RSAPublicKey) 
     // Compare recovered message with original
     Ok(recovered_message == message)
 }
-

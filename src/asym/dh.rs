@@ -69,6 +69,12 @@ pub struct DHParticipant {
 const DH_PRIME: u64 = 2147483647; // 2^31 - 1 (Mersenne prime)
 const DH_GENERATOR: u64 = 2;
 
+impl Default for DHParticipant {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DHParticipant {
     /// Creates a new DH participant with a randomly generated private key.
     ///
@@ -276,12 +282,12 @@ pub fn interactive_key_exchange() -> Result<String> {
     let bob_shared = bob.compute_shared_secret(alice.public_key)?;
 
     println!("\n🤝 Key Exchange Result:");
-    println!("  Alice computed shared secret: {}", alice_shared);
-    println!("  Bob computed shared secret:   {}", bob_shared);
+    println!("  Alice computed shared secret: {alice_shared}");
+    println!("  Bob computed shared secret:   {bob_shared}");
 
     if alice_shared == bob_shared {
         println!("  ✅ SUCCESS: Both parties have the same shared secret!");
-        Ok(format!("Shared secret established: {}", alice_shared))
+        Ok(format!("Shared secret established: {alice_shared}"))
     } else {
         println!("  ❌ ERROR: Shared secrets don't match!");
         Err(anyhow::anyhow!("Key exchange failed"))
@@ -357,8 +363,8 @@ pub fn complete_manual_key_exchange(other_public_key: u64, my_private_key: u64) 
     let mut my_participant = DHParticipant::with_private_key(my_private_key);
 
     println!("📥 Received Information:");
-    println!("   Other party's public key: {}", other_public_key);
-    println!("   Your private key:         {}", my_private_key);
+    println!("   Other party's public key: {other_public_key}");
+    println!("   Your private key:         {my_private_key}");
     println!("   Your public key:          {}", my_participant.public_key);
     println!();
 
@@ -373,12 +379,12 @@ pub fn complete_manual_key_exchange(other_public_key: u64, my_private_key: u64) 
     );
     println!();
 
-    println!("🎉 SHARED SECRET COMPUTED: {}", shared_secret);
+    println!("🎉 SHARED SECRET COMPUTED: {shared_secret}");
     println!();
     println!("✅ Success! Both parties should now have the same shared secret.");
     println!("🔒 This shared secret can be used as a key for symmetric encryption.");
 
-    Ok(format!("Shared secret: {}", shared_secret))
+    Ok(format!("Shared secret: {shared_secret}"))
 }
 
 /// Demonstrates the mathematical concepts behind Diffie-Hellman.
@@ -419,70 +425,47 @@ pub fn demonstrate_concept() -> Result<String> {
     let bob_private = 15;
 
     println!("🔢 Public Parameters (known to everyone):");
-    println!("   Prime (p) = {}", p);
-    println!("   Generator (g) = {}", g);
+    println!("   Prime (p) = {p}");
+    println!("   Generator (g) = {g}");
     println!();
 
     println!("👩 Alice's Calculations:");
-    println!("   1. Chooses private key (a) = {} (secret)", alice_private);
+    println!("   1. Chooses private key (a) = {alice_private} (secret)");
     let alice_public = mod_exp(g, alice_private, p);
     println!("   2. Computes public key (A) = g^a mod p");
-    println!(
-        "      A = {}^{} mod {} = {}",
-        g, alice_private, p, alice_public
-    );
-    println!("   3. Sends public key {} to Bob", alice_public);
+    println!("      A = {g}^{alice_private} mod {p} = {alice_public}");
+    println!("   3. Sends public key {alice_public} to Bob");
     println!();
 
     println!("👨 Bob's Calculations:");
-    println!("   1. Chooses private key (b) = {} (secret)", bob_private);
+    println!("   1. Chooses private key (b) = {bob_private} (secret)");
     let bob_public = mod_exp(g, bob_private, p);
     println!("   2. Computes public key (B) = g^b mod p");
-    println!("      B = {}^{} mod {} = {}", g, bob_private, p, bob_public);
-    println!("   3. Sends public key {} to Alice", bob_public);
+    println!("      B = {g}^{bob_private} mod {p} = {bob_public}");
+    println!("   3. Sends public key {bob_public} to Alice");
     println!();
 
     println!("🤝 Shared Secret Calculation:");
     println!("   Alice computes: s = B^a mod p");
     let alice_shared = mod_exp(bob_public, alice_private, p);
-    println!(
-        "   Alice: s = {}^{} mod {} = {}",
-        bob_public, alice_private, p, alice_shared
-    );
+    println!("   Alice: s = {bob_public}^{alice_private} mod {p} = {alice_shared}");
     println!();
 
     println!("   Bob computes: s = A^b mod p");
     let bob_shared = mod_exp(alice_public, bob_private, p);
-    println!(
-        "   Bob: s = {}^{} mod {} = {}",
-        alice_public, bob_private, p, bob_shared
-    );
+    println!("   Bob: s = {alice_public}^{bob_private} mod {p} = {bob_shared}");
     println!();
-
     if alice_shared == bob_shared {
-        println!(
-            "🎉 SUCCESS: Both parties computed the same shared secret: {}",
-            alice_shared
-        );
+        println!("🎉 SUCCESS: Both parties computed the same shared secret: {alice_shared}");
         println!();
         println!("🔐 Security Insight:");
-        println!(
-            "   - Public keys {} and {} are known to everyone",
-            alice_public, bob_public
-        );
-        println!(
-            "   - Private keys {} and {} are kept secret",
-            alice_private, bob_private
-        );
-        println!(
-            "   - Shared secret {} can only be computed by Alice and Bob",
-            alice_shared
-        );
+        println!("   - Public keys {alice_public} and {bob_public} are known to everyone");
+        println!("   - Private keys {alice_private} and {bob_private} are kept secret");
+        println!("   - Shared secret {alice_shared} can only be computed by Alice and Bob");
         println!("   - An eavesdropper would need to solve the discrete logarithm problem");
 
         Ok(format!(
-            "Concept demonstration complete. Shared secret: {}",
-            alice_shared
+            "Concept demonstration complete. Shared secret: {alice_shared}"
         ))
     } else {
         Err(anyhow::anyhow!("Mathematical error in demonstration"))
@@ -529,4 +512,3 @@ fn mod_exp(base: u64, exp: u64, modulus: u64) -> u64 {
 
     result
 }
-

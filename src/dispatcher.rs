@@ -81,7 +81,7 @@ pub fn dispatch_command(args: cli::Args) -> Result<()> {
         }
         Commands::Sign { algorithm } => {
             let algo_name = cli::get_signing_algorithm_name(&algorithm);
-            println!("✍️ Signing with {} algorithm...", algo_name);
+            println!("✍️ Signing with {algo_name} algorithm...");
 
             if algorithm.rsa {
                 handle_sign(algorithm)?;
@@ -89,7 +89,7 @@ pub fn dispatch_command(args: cli::Args) -> Result<()> {
         }
         Commands::Verify { algorithm } => {
             let algo_name = cli::get_signing_algorithm_name(&algorithm);
-            println!("🔍 Verifying {} signature...", algo_name);
+            println!("🔍 Verifying {algo_name} signature...");
 
             if algorithm.rsa {
                 handle_verify(algorithm)?;
@@ -197,14 +197,11 @@ fn handle_encryption(algorithm: EncryptionAlgorithm) -> Result<()> {
                 rsa::encrypt(&input, &key_size, &encoding, &privkey_format)?;
 
             println!("\n🔐 RSA Encryption Complete!");
-            println!("📤 Encrypted data: {}", encrypted);
-            println!("🔑 Private key (SAVE THIS!): {}", private_key);
+            println!("📤 Encrypted data: {encrypted}");
+            println!("🔑 Private key (SAVE THIS!): {private_key}");
             println!("⚠️  Keep your private key secure - you'll need it for decryption!");
 
-            format!(
-                "RSA-{} encryption successful. Encrypted data and private key provided above.",
-                key_size
-            )
+            format!("RSA-{key_size} encryption successful. Encrypted data and private key provided above.")
         }
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -250,29 +247,29 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
         _ if algorithm.caesar => {
             let shift = interactive::prompt_for_number("Enter shift value (1-25)", 1, 25)?;
             let decrypted = caesar::decrypt(&input, shift as u8)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.vigenere => {
             let keyword = interactive::prompt_for_input("Enter keyword")?;
             let decrypted = vigenere::decrypt(&input, &keyword)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.playfair => {
             let keyword = interactive::prompt_for_input("Enter keyword for matrix")?;
             let decrypted = playfair::decrypt(&input, &keyword)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.railfence => {
             let rails = interactive::prompt_for_number("Enter number of rails (2-10)", 2, 10)?;
             let decrypted = rail_fence::decrypt(&input, rails as usize)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.rc4 => {
             let key = interactive::prompt_for_password("Enter decryption key")?;
             let encoding =
                 interactive::prompt_for_choices("Select input encoding", &["base64", "hex"])?;
             let decrypted = rc4::decrypt(&input, &key, &encoding)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.aes => {
             let password = interactive::prompt_for_password("Enter password")?;
@@ -282,7 +279,7 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             let encoding =
                 interactive::prompt_for_choices("Select input encoding", &["base64", "hex"])?;
             let decrypted = aes::decrypt(&input, &password, &key_size, &mode, &encoding)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.des => {
             let key = interactive::prompt_for_input("Enter key (exactly 8 characters)")?;
@@ -293,7 +290,7 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             let encoding =
                 interactive::prompt_for_choices("Select input encoding", &["base64", "hex"])?;
             let decrypted = des::decrypt(&input, &key, &mode, &encoding)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ if algorithm.rsa => {
             let private_key = interactive::prompt_for_multiline_input(
@@ -302,7 +299,7 @@ fn handle_decryption(algorithm: EncryptionAlgorithm) -> Result<()> {
             let encoding =
                 interactive::prompt_for_choices("Select input encoding", &["base64", "hex"])?;
             let decrypted = rsa::decrypt(&input, &private_key, &encoding)?;
-            format!("Decrypted text: {}", decrypted)
+            format!("Decrypted text: {decrypted}")
         }
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -345,15 +342,15 @@ fn handle_hashing(algorithm: HashAlgorithm) -> Result<()> {
     let result = match true {
         _ if algorithm.md5 => {
             let hash_value = md5::hash(&input)?;
-            format!("MD5 hash: {}", hash_value)
+            format!("MD5 hash: {hash_value}")
         }
         _ if algorithm.sha1 => {
             let hash_value = sha1::hash(&input)?;
-            format!("SHA-1 hash: {}", hash_value)
+            format!("SHA-1 hash: {hash_value}")
         }
         _ if algorithm.sha256 => {
             let hash_value = sha256::hash(&input)?;
-            format!("SHA-256 hash: {}", hash_value)
+            format!("SHA-256 hash: {hash_value}")
         }
         _ => return Err(anyhow::anyhow!("Unknown algorithm")),
     };
@@ -505,7 +502,7 @@ pub fn handle_sign(algorithm: SigningAlgorithm) -> Result<()> {
         match rsa::sign(&data, &private_key, &encoding) {
             Ok(signature) => {
                 println!("\n✅ Digital signature created successfully!");
-                println!("📝 Original message: {}", data);
+                println!("📝 Original message: {data}");
                 println!(
                     "🔏 Digital signature ({}): {}",
                     encoding.to_uppercase(),
@@ -514,7 +511,7 @@ pub fn handle_sign(algorithm: SigningAlgorithm) -> Result<()> {
                 println!("\n💡 Save this signature to verify the message authenticity later.");
             }
             Err(e) => {
-                eprintln!("❌ Signing failed: {}", e);
+                eprintln!("❌ Signing failed: {e}");
                 return Err(e);
             }
         }
@@ -540,7 +537,7 @@ pub fn handle_verify(algorithm: SigningAlgorithm) -> Result<()> {
         match rsa::verify(&data, &signature, &public_key, &encoding) {
             Ok(is_valid) => {
                 println!("\n🔍 Signature verification result:");
-                println!("📝 Original message: {}", data);
+                println!("📝 Original message: {data}");
                 println!("🔏 Signature: {}...", &signature[..signature.len().min(20)]);
 
                 if is_valid {
@@ -554,7 +551,7 @@ pub fn handle_verify(algorithm: SigningAlgorithm) -> Result<()> {
                 }
             }
             Err(e) => {
-                eprintln!("❌ Verification failed: {}", e);
+                eprintln!("❌ Verification failed: {e}");
                 return Err(e);
             }
         }

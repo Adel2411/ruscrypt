@@ -203,7 +203,7 @@ mod tests {
                 let input = "a".repeat(length);
                 let encrypted = des::encrypt(&input, key, "ECB", "base64").unwrap();
                 let decrypted = des::decrypt(&encrypted, key, "ECB", "base64").unwrap();
-                assert_eq!(decrypted, input, "Failed at length: {}", length);
+                assert_eq!(decrypted, input, "Failed at length: {length}");
             }
         }
 
@@ -304,7 +304,7 @@ mod tests {
                     aes::encrypt(original, password, key_size, "ECB", "base64").unwrap();
                 let decrypted =
                     aes::decrypt(&encrypted, password, key_size, "ECB", "base64").unwrap();
-                assert_eq!(decrypted, original, "Failed with key size: {}", key_size);
+                assert_eq!(decrypted, original, "Failed with key size: {key_size}");
             }
         }
 
@@ -497,7 +497,7 @@ mod tests {
                 let encrypted = aes::encrypt(&input, password, key_size, "ECB", "base64").unwrap();
                 let decrypted =
                     aes::decrypt(&encrypted, password, key_size, "ECB", "base64").unwrap();
-                assert_eq!(decrypted, input, "Failed at length: {}", length);
+                assert_eq!(decrypted, input, "Failed at length: {length}");
             }
         }
 

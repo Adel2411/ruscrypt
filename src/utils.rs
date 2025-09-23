@@ -139,7 +139,7 @@ pub fn to_hex(data: &[u8]) -> String {
 /// assert_eq!(original, &decoded2[..]);
 /// ```
 pub fn from_hex(hex: &str) -> Result<Vec<u8>> {
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         return Err(anyhow::anyhow!("Hex string must have even length"));
     }
 
@@ -305,8 +305,8 @@ pub fn remove_padding(data: &[u8]) -> Result<Vec<u8>> {
     }
 
     // Verify all padding bytes are correct
-    for i in (data.len() - padding_length)..data.len() {
-        if data[i] != padding_length as u8 {
+    for &byte in &data[data.len() - padding_length..] {
+        if byte != padding_length as u8 {
             return Err(anyhow::anyhow!("Invalid padding"));
         }
     }

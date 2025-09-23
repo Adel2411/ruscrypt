@@ -116,4 +116,3 @@ pub mod playfair;
 /// Transposition cipher that arranges plaintext in a zigzag pattern across multiple
 /// "rails" then reads the ciphertext row by row.
 pub mod rail_fence;
-

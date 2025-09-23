@@ -147,7 +147,7 @@ pub fn prompt_for_number(prompt: &str, min: u32, max: u32) -> Result<u32> {
             if *input >= min && *input <= max {
                 Ok(())
             } else {
-                Err(format!("Please enter a number between {} and {}", min, max))
+                Err(format!("Please enter a number between {min} and {max}"))
             }
         })
         .interact()
@@ -236,7 +236,7 @@ pub fn prompt_for_key_output_format() -> Result<String> {
 /// ```
 pub fn prompt_for_multiline_input(prompt: &str) -> Result<String> {
     use std::io::{self, BufRead, Write};
-    println!("{}", prompt);
+    println!("{prompt}");
     println!("(End input with an empty line)");
     let stdin = io::stdin();
     let mut lines = Vec::new();

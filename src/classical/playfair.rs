@@ -326,7 +326,7 @@ fn create_pairs(text: &str) -> Vec<(char, char)> {
 ///
 /// Returns an error if the text length is odd, indicating corrupted ciphertext.
 fn create_pairs_from_cipher(text: &str) -> Result<Vec<(char, char)>> {
-    if text.len() % 2 != 0 {
+    if !text.len().is_multiple_of(2) {
         return Err(anyhow::anyhow!("Cipher text must have even length"));
     }
 
@@ -412,7 +412,7 @@ fn encrypt_pair(a: char, b: char, matrix: &[[char; 5]; 5]) -> Result<String> {
         (matrix[row1][col2], matrix[row2][col1])
     };
 
-    Ok(format!("{}{}", new_a, new_b))
+    Ok(format!("{new_a}{new_b}"))
 }
 
 /// Decrypts a pair of characters using reverse Playfair rules.
@@ -461,5 +461,5 @@ fn decrypt_pair(a: char, b: char, matrix: &[[char; 5]; 5]) -> Result<String> {
         (matrix[row1][col2], matrix[row2][col1])
     };
 
-    Ok(format!("{}{}", new_a, new_b))
+    Ok(format!("{new_a}{new_b}"))
 }

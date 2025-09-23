@@ -237,8 +237,7 @@ mod tests {
 
                 assert_eq!(
                     alice_shared, bob_shared,
-                    "Failed symmetry test with iteration {}",
-                    i
+                    "Failed symmetry test with iteration {i}"
                 );
             }
         }
@@ -301,10 +300,11 @@ mod tests {
 
     #[cfg(test)]
     mod rsa_tests {
-        use crate::{asym::rsa::{
+        use crate::asym::rsa::{
             decrypt, encrypt, export_private_key_pem, export_public_key_pem, generate_key_pair,
-            import_private_key_pem, rsa_decrypt, rsa_encrypt, rsa_sign, rsa_verify, sign, verify, RSAPrivateKey,
-        }};
+            import_private_key_pem, rsa_decrypt, rsa_encrypt, rsa_sign, rsa_verify, sign, verify,
+            RSAPrivateKey,
+        };
 
         #[test]
         fn test_key_generation_512() {
@@ -632,7 +632,7 @@ mod tests {
             let message = b"Test message";
 
             let signature = rsa_sign(message, &key_pair1.private_key).unwrap();
-            
+
             // Verification with wrong public key should fail
             let is_valid = rsa_verify(message, &signature, &key_pair2.public_key).unwrap();
             assert!(!is_valid);
@@ -662,7 +662,7 @@ mod tests {
             let is_valid = verify(message, &signature, &public_key_str, "hex").unwrap();
 
             assert!(is_valid);
-            
+
             // Verify hex format
             assert!(signature.chars().all(|c| c.is_ascii_hexdigit()));
             assert_eq!(signature.len() % 2, 0);
@@ -710,13 +710,13 @@ mod tests {
         #[test]
         fn test_sign_invalid_private_key_format() {
             let message = "Test message";
-            
+
             // Invalid format - not n:d
             assert!(sign(message, "invalid", "base64").is_err());
-            
+
             // Invalid format - wrong separator
             assert!(sign(message, "123-456", "base64").is_err());
-            
+
             // Invalid format - non-numeric
             assert!(sign(message, "abc:def", "base64").is_err());
         }
@@ -725,13 +725,13 @@ mod tests {
         fn test_verify_invalid_public_key_format() {
             let message = "Test message";
             let signature = "dGVzdA=="; // Valid base64
-            
+
             // Invalid format - not n:e
             assert!(verify(message, signature, "invalid", "base64").is_err());
-            
+
             // Invalid format - wrong separator
             assert!(verify(message, signature, "123-456", "base64").is_err());
-            
+
             // Invalid format - non-numeric
             assert!(verify(message, signature, "abc:def", "base64").is_err());
         }
@@ -745,7 +745,7 @@ mod tests {
 
             // Invalid encoding for signing
             assert!(sign(message, &private_key_str, "invalid").is_err());
-            
+
             // Invalid encoding for verification
             let signature = sign(message, &private_key_str, "base64").unwrap();
             assert!(verify(message, &signature, &public_key_str, "invalid").is_err());
@@ -759,10 +759,10 @@ mod tests {
 
             // Invalid base64 signature
             assert!(verify(message, "not_base64!", &public_key_str, "base64").is_err());
-            
+
             // Invalid hex signature (odd length)
             assert!(verify(message, "abc", &public_key_str, "hex").is_err());
-            
+
             // Invalid hex signature (non-hex chars)
             assert!(verify(message, "abcdefgh", &public_key_str, "hex").is_err());
         }
@@ -776,7 +776,7 @@ mod tests {
             let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
 
             let signature = sign(original_message, &private_key_str, "base64").unwrap();
-            
+
             // Verification should fail with tampered message
             let is_valid = verify(tampered_message, &signature, &public_key_str, "base64").unwrap();
             assert!(!is_valid);
@@ -790,10 +790,10 @@ mod tests {
             let public_key_str = format!("{}:{}", key_pair.public_key.n, key_pair.public_key.e);
 
             let mut signature = sign(message, &private_key_str, "base64").unwrap();
-            
+
             // Tamper with the signature
             signature.push('X');
-            
+
             // Verification should fail with tampered signature
             let result = verify(message, &signature, &public_key_str, "base64");
             assert!(result.is_err() || !result.unwrap());
@@ -821,11 +821,12 @@ mod tests {
         #[test]
         fn test_sign_verify_invalid_pem_private_key() {
             let message = "Test message";
-            
+
             // Invalid PEM format
-            let invalid_pem = "-----BEGIN RSA PRIVATE KEY-----\ninvalid_base64\n-----END RSA PRIVATE KEY-----";
+            let invalid_pem =
+                "-----BEGIN RSA PRIVATE KEY-----\ninvalid_base64\n-----END RSA PRIVATE KEY-----";
             assert!(sign(message, invalid_pem, "base64").is_err());
-            
+
             // Missing PEM headers
             let missing_headers = "some_random_data";
             assert!(sign(message, missing_headers, "base64").is_err());
@@ -837,9 +838,10 @@ mod tests {
             let message = "Test message";
             let private_key_str = format!("{}:{}", key_pair.private_key.n, key_pair.private_key.d);
             let signature = sign(message, &private_key_str, "base64").unwrap();
-            
+
             // Invalid PEM format
-            let invalid_pem = "-----BEGIN RSA PUBLIC KEY-----\ninvalid_base64\n-----END RSA PUBLIC KEY-----";
+            let invalid_pem =
+                "-----BEGIN RSA PUBLIC KEY-----\ninvalid_base64\n-----END RSA PUBLIC KEY-----";
             assert!(verify(message, &signature, invalid_pem, "base64").is_err());
         }
     }

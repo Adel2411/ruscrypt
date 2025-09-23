@@ -176,7 +176,7 @@ mod tests {
             for key in &keys {
                 let encrypted = rc4::encrypt(text, key, "base64").unwrap();
                 let decrypted = rc4::decrypt(&encrypted, key, "base64").unwrap();
-                assert_eq!(decrypted, text, "Failed with key: {}", key);
+                assert_eq!(decrypted, text, "Failed with key: {key}");
             }
         }
     }

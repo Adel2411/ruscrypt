@@ -399,10 +399,14 @@ fn des_encrypt_block(block: &[u8], key: &[u8]) -> Result<[u8; 8]> {
 
     // Simplified DES rounds (16 rounds normally)
     for round in 0..16 {
-        for i in 0..8 {
-            state[i] ^= key[round % 8];
-            state[i] = state[i].wrapping_add(round as u8);
-            state[i] = state[i].rotate_left(1);
+        for byte in &mut state {
+            // *byte ^= key[round % 8];
+            // *byte = byte.wrapping_add(round as u8);
+            // *byte = byte.rotate_left(1);
+
+            *byte = (*byte ^ key[round % 8])
+                .wrapping_add(round as u8)
+                .rotate_left(1);
         }
 
         // Simple permutation
@@ -448,13 +452,10 @@ fn des_decrypt_block(block: &[u8], key: &[u8]) -> Result<[u8; 8]> {
         // Reverse permutation
         state.reverse();
 
-        for i in 0..8 {
-            state[i] = state[i].rotate_right(1);
-            state[i] = state[i].wrapping_sub(round as u8);
-            state[i] ^= key[round % 8];
+        for byte in &mut state {
+            *byte = byte.rotate_right(1).wrapping_sub(round as u8) ^ key[round % 8];
         }
     }
 
     Ok(state)
 }
-

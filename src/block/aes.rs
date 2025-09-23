@@ -409,8 +409,8 @@ fn aes_encrypt_block(block: &[u8], key: &[u8], key_bits: u32) -> Result<[u8; 16]
     // Simplified round function
     for round in 0..rounds {
         // AddRoundKey (simplified)
-        for i in 0..16 {
-            state[i] ^= key[round % key.len()];
+        for byte in &mut state {
+            *byte ^= key[round % key.len()];
         }
 
         // SubBytes (simplified S-box)
@@ -467,8 +467,8 @@ fn aes_decrypt_block(block: &[u8], key: &[u8], key_bits: u32) -> Result<[u8; 16]
         }
 
         // Reverse AddRoundKey
-        for i in 0..16 {
-            state[i] ^= key[round % key.len()];
+        for byte in &mut state {
+            *byte ^= key[round % key.len()];
         }
     }
 

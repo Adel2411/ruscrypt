@@ -58,7 +58,6 @@
 //! - **CLI and library** - use as a command-line tool or integrate into your project
 
 #![warn(missing_docs)]
-#![warn(clippy::all)]
 #![deny(unsafe_code)]
 
 pub mod cli;

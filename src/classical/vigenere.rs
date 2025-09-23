@@ -83,7 +83,7 @@ pub fn encrypt(text: &str, keyword: &str) -> Result<String> {
         .map(|c| {
             if c.is_alphabetic() {
                 let key_char = keyword_chars[key_index % keyword_chars.len()];
-                let shift = (key_char as u8 - b'A') as u8;
+                let shift = key_char as u8 - b'A';
                 key_index += 1;
                 shift_char(c, shift)
             } else {
@@ -146,7 +146,7 @@ pub fn decrypt(text: &str, keyword: &str) -> Result<String> {
         .map(|c| {
             if c.is_alphabetic() {
                 let key_char = keyword_chars[key_index % keyword_chars.len()];
-                let shift = (key_char as u8 - b'A') as u8;
+                let shift = key_char as u8 - b'A';
                 let reverse_shift = (26 - shift) % 26;
                 key_index += 1;
                 shift_char(c, reverse_shift)
@@ -158,4 +158,3 @@ pub fn decrypt(text: &str, keyword: &str) -> Result<String> {
 
     Ok(result)
 }
-
